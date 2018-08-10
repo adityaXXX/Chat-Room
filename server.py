@@ -25,7 +25,7 @@ def ClientConnection(client):
         if msg != quit:
             Broadcast(msg, name + ": ")
         else:
-            Broadcast(("{} has left the chat.").format(client[client]))
+            Broadcast(("{} has left the chat.").format(clients[client]))
             client.send(("Will see you soon..").encode("utf-8"))
             del clients[client]
             break
