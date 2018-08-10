@@ -20,6 +20,7 @@ def Send():
         if msg == "quit":
             client.send(msg.encode("utf-8"))
             client.close()
+            break
         else:
             client.send(msg.encode("utf-8"))
 
