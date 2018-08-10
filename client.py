@@ -1,6 +1,5 @@
 from socket import AF_INET, SOCK_STREAM, socket
 from threading import Thread
-import tkinter
 
 HOST = input("Enter Host IP: ")
 PORT = eval(input("Enter Port No: "))
