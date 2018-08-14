@@ -34,7 +34,7 @@ def Send():
     while fvs.more():
         frame = fvs.read()
 
-        cvImage = cv2.cvtColor(np.array(pilImage), cv2.COLOR_BGR2RGB)
+        cvImage = cv2.cvtColor(np.array(frame), cv2.COLOR_BGR2RGB)
         pil = Image.fromarray(cvImage)
         b = io.BytesIO()
         pil.save(b, 'jpeg')
