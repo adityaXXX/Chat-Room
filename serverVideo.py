@@ -17,7 +17,7 @@ def Connections():
         Thread(target=ClientConnection, args=(client, )).start()
 
 def ClientConnection(client):
-    length = int(client.recv(8192).decode("utf-8"))
+    length = int(client.recv(2 * BufferSize).decode("utf-8"))
     SendLength(client, str(length))
     while True:
         receivingBuffer = client.recv(BufferSize)
@@ -25,7 +25,7 @@ def ClientConnection(client):
             break
         data = b''
         if len(data) < length:
-            data = client.recv(4096 if to_read > 4096 else to_read)
+            data = client.recv(BufferSize if to_read > BufferSize else to_read)
             to_read = length - len(data)
             length -= len(data)
         broadcast(client, data)

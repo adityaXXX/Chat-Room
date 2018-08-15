@@ -9,11 +9,11 @@ import numpy as np
 
 HOST = "192.168.157.206"
 PORT = 3000
-BufferSize = 1024
+BufferSize = 4096
 
 def Recieve():
     while True:
-        length = int(client.recv(8192).decode("utf-8"))
+        length = int(client.recv(2 * BufferSize).decode("utf-8"))
         while True:
             receivingBuffer = client.recv(BufferSize)
             if not receivingBuffer:
@@ -21,12 +21,12 @@ def Recieve():
             data = b''
             if len(data) <= length:
                 to_read = length - len(data)
-                data += client.recv(4096 if to_read > 4096 else to_read)
+                data += client.recv(BufferSize if to_read > BufferSize else to_read)
 
         pilBytes = io.BytesIO(data)
         pilImage = Image.open(pilBytes)
         cvImage = cv2.cvtColor(np.array(pilImage), cv2.COLOR_RGB2BGR)
-        cv2.imshow("Video", cvImage)
+        cv2.imshow("Video", np.array(pilImage))
 
 
 def Send():
