@@ -101,7 +101,7 @@ client = socket(family=AF_INET, type=SOCK_STREAM)
 client.connect((HOST, PORT))
 
 audio=pyaudio.PyAudio()
-stream=audio.open(format=FORMAT,channels=CHANNELS, rate=RATE, input=True, frames_per_buffer=CHUNK)
+stream=audio.open(format=FORMAT,channels=CHANNELS, rate=RATE, input=True, output = True, frames_per_buffer=CHUNK)
 
 RecieveFrameThread = Thread(target=RecieveFrames).start()
 SendFrameThread = Thread(target=SendFrames).start()
