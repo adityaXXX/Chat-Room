@@ -1,49 +1,75 @@
 from socket import socket, AF_INET, SOCK_STREAM
 from threading import Thread
 
-import numpy as np
 
-HOST = "192.168.43.215"
-PORT = 5000
+HOST = "192.168.157.206"
+PORT = 4000
 BufferSize = 4096
 addresses = {}
 
 def Connections():
     while True:
-        client, addr = server.accept()
-        print("{} is connected!!".format(addr))
-        # client.send(("Welcome to Chat Room. Press {q} to exit").encode("utf-8"))
-        addresses[client] = addr
-        Thread(target=ClientConnection, args=(client, )).start()
+        try:
+            client, addr = server.accept()
+            print("{} is connected!!".format(addr))
+            addresses[client] = addr
+            Thread(target=ClientConnectionFrames, args=(client, )).start()
+            Thread(target=ClientConnectionSound, args=(client, )).start()
+        except:
+            continue
 
-def ClientConnection(client):
-    length = int(client.recv(2 * BufferSize).decode("utf-8"))
-    SendLength(client, str(length))
+def ClientConnectionSound(client):
     while True:
-        # print("In client Connections...")
-        receivingBuffer = client.recv(BufferSize)
-        if not receivingBuffer:
-            break
         data = b''
-        if len(data) < length:
+        # print("In client Connections...")
+        try:
+            data = client.recv(BufferSize).decode("utf-8")
+            if data == "Sending Audio From Client":
+                client.send(("Sending Sound From Client Confirmed"))
+                data = client.recv(BufferSize)
+                if not data:
+                    break
+                broadcastSound(client, data)
+        except:
+            continue
+        break
 
-            to_read = length - len(data)
-            data = client.recv(BufferSize if to_read > BufferSize else to_read)
-            length -= len(data)
-        broadcast(client, data)
+def broadcastSound(clientSocket, data_to_be_sent):
+    clientSocket.send(("Broadcasting Sound").encode("utf-8"))
+    temp = clientSocket.recv(BufferSize).decode("utf-8")
+    if temp == "Broadcast Sound":
+        for client in addresses:
+            if client != clientSocket:
+                # print("Broadcasting...")
+                client.sendall(data_to_be_sent)
 
-def SendLength(clientSocket, length):
-    for client in addresses:
-        if client != clientSocket:
-            print("sending length:- {}".format(len(length)))
-            client.send(length.encode("utf-8"))
+def ClientConnectionFrames(client):
+    while True:
+        data = b''
+        # print("In client Connections...")
+        try:
+            data = client.recv(BufferSize).decode("utf-8")
+            if data == "Sending Frames From Client":
+                while True:
+                    client.send(("Sending Frames From Client Confirmed"))
+                    data = client.recv(BufferSize)
+                    if not data:
+                        break
+                    broadcastFrames(client, data)
+        except:
+            continue
+        break
+
+def broadcastFrames(clientSocket, data_to_be_sent):
+    clientSocket.send(("Broadcasting Frames").encode("utf-8"))
+    temp = clientSocket.recv(BufferSize).decode("utf-8")
+    if temp == "Broadcast Frame":
+        for client in addresses:
+            if client != clientSocket:
+                # print("Broadcasting...")
+                client.sendall(data_to_be_sent)
 
 
-def broadcast(clientSocket, receivingBuffer):
-    for client in addresses:
-        if client != clientSocket:
-            # print("Broadcasting...")
-            client.send(receivingBuffer)
 
 server = socket(family=AF_INET, type=SOCK_STREAM)
 try:
