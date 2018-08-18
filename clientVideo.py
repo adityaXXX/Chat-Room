@@ -3,9 +3,7 @@ from socket import socket, AF_INET, SOCK_STREAM
 from imutils.video import WebcamVideoStream
 from threading import Thread
 import numpy as np
-import time
 import pyaudio
-from array import array
 import keyboard
 
 
@@ -107,3 +105,5 @@ stream=audio.open(format=FORMAT,channels=CHANNELS, rate=RATE, input=True, frames
 
 RecieveFrameThread = Thread(target=RecieveFrames).start()
 SendFrameThread = Thread(target=SendFrames).start()
+RecieveAudioThread = Thread(target=RecieveAudio).start()
+SendAudioThread = Thread(target=SendAudio).start()
