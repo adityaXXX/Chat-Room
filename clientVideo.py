@@ -80,7 +80,7 @@ def sending():
                 SendVideo()
             if keyboard.is_pressed('q'):
 ##                    waitOut == 1
-                    break
+                break
 
 def recieving():
     print('Recieving Video and Audio feed...')
@@ -96,7 +96,7 @@ def recieving():
                 RecieveVideo()
             if keyboard.is_pressed('q'):
 ##                    waitOut == 1
-                    break
+                break
 
 client = socket(family=AF_INET, type=SOCK_STREAM)
 client.connect((HOST, PORT))
