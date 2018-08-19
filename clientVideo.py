@@ -62,12 +62,12 @@ def SendFrames():
             if data == "Sending Frames From Client Confirmed":
                 client.sendall(jpg_as_text)
                 print("Client is sending Frames...")
+                client.send(b'')
                 if keyboard.is_pressed('q'):
                     waitOut == 1
                     break
         except:
             continue
-    client.send(b'')
 
 def SendAudio():
     while(waitOut == 0):

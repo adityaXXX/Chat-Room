@@ -50,15 +50,14 @@ def ClientConnectionFrames(client):
         try:
             data = client.recv(BufferSize).decode("utf-8")
             if data == "Sending Frames From Client":
+                client.send(("Sending Frames From Client Confirmed"))
                 while True:
-                    client.send(("Sending Frames From Client Confirmed"))
                     data = client.recv(BufferSize)
                     if not data:
                         break
                     broadcastFrames(client, data)
         except:
             continue
-        break
 
 def broadcastFrames(clientSocket, data_to_be_sent):
     clientSocket.send(("Broadcasting Frames").encode("utf-8"))
