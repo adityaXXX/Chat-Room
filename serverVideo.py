@@ -13,61 +13,50 @@ def Connections():
             client, addr = server.accept()
             print("{} is connected!!".format(addr))
             addresses[client] = addr
-            Thread(target=ClientConnectionFrames, args=(client, )).start()
-            Thread(target=ClientConnectionSound, args=(client, )).start()
+            Thread(target=ClientConnection, args=(client, )).start()
         except:
             continue
 
-def ClientConnectionSound(client):
+def ClientConnection(client):
     while True:
         data = b''
         # print("In client Connections...")
         try:
             data = client.recv(BufferSize).decode("utf-8")
             if data == "Sending Audio From Client":
-                client.send(("Sending Sound From Client Confirmed"))
+                client.send(("Sending Audio From Client Confirmed"))
                 data = client.recv(BufferSize)
                 if not data:
                     break
-                broadcastSound(client, data)
+                broadcast(client, "SOUND", data)
+            elif data == "Sending Video From Client":
+                client.send(("Sending Video From Client Confirmed"))
+                data = client.recv(BufferSize)
+                if not data:
+                    break
+                broadcast(client, "VIDEO", data)
         except:
             continue
         break
 
-def broadcastSound(clientSocket, data_to_be_sent):
-    clientSocket.send(("Broadcasting Sound").encode("utf-8"))
-    temp = clientSocket.recv(BufferSize).decode("utf-8")
-    if temp == "Broadcast Sound":
-        for client in addresses:
-            if client != clientSocket:
-                # print("Broadcasting...")
-                client.sendall(data_to_be_sent)
+def broadcast(clientSocket, format, data_to_be_sent):
+    if format == "SOUND":
+        clientSocket.send(("Broadcasting Sound").encode("utf-8"))
+        temp = clientSocket.recv(BufferSize).decode("utf-8")
+        if temp == "Broadcast Sound":
+            for client in addresses:
+                if client != clientSocket:
+                    # print("Broadcasting...")
+                    client.sendall(data_to_be_sent)
 
-def ClientConnectionFrames(client):
-    while True:
-        data = b''
-        # print("In client Connections...")
-        try:
-            data = client.recv(BufferSize).decode("utf-8")
-            if data == "Sending Frames From Client":
-                client.send(("Sending Frames From Client Confirmed"))
-                while True:
-                    data = client.recv(BufferSize)
-                    if not data:
-                        break
-                    broadcastFrames(client, data)
-        except:
-            continue
-
-def broadcastFrames(clientSocket, data_to_be_sent):
-    clientSocket.send(("Broadcasting Frames").encode("utf-8"))
-    temp = clientSocket.recv(BufferSize).decode("utf-8")
-    if temp == "Broadcast Frame":
-        for client in addresses:
-            if client != clientSocket:
-                # print("Broadcasting...")
-                client.sendall(data_to_be_sent)
-
+    elif format == "VIDEO":
+        clientSocket.send(("Broadcasting Video").encode("utf-8"))
+        temp = clientSocket.recv(BufferSize).decode("utf-8")
+        if temp == "Broadcast Video":
+            for client in addresses:
+                if client != clientSocket:
+                    # print("Broadcasting...")
+                    client.sendall(data_to_be_sent)
 
 
 server = socket(family=AF_INET, type=SOCK_STREAM)
