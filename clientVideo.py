@@ -28,14 +28,14 @@ def SendAudio():
             print("Recording Sound...")
             client.send(data)
     except:
-        continue
+        pass
 
 def RecieveAudio():
     try:
         data = client.recv(BufferSize)
         stream.write(data)
     except:
-        continue
+        pass
 
 def RecieveVideo():
     try:
@@ -52,7 +52,8 @@ def RecieveVideo():
         cv_image = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
         cv2.imshow("Stream", cv_image)
     except:
-        continue
+        pass
+
 def SendVideo():
     try:
         frame = wvs.read()
@@ -64,7 +65,7 @@ def SendVideo():
 ##            print("Client is sending Frames...")
 ##                client.send(b'')
     except:
-        continue
+        pass
 
 def sending():
     print('Sending Video and Audio feed...')
@@ -81,6 +82,8 @@ def sending():
             if keyboard.is_pressed('q'):
 ##                    waitOut == 1
                 break
+        except:
+            continue
 
 def recieving():
     print('Recieving Video and Audio feed...')
@@ -97,6 +100,8 @@ def recieving():
             if keyboard.is_pressed('q'):
 ##                    waitOut == 1
                 break
+        except:
+            continue
 
 client = socket(family=AF_INET, type=SOCK_STREAM)
 client.connect((HOST, PORT))
