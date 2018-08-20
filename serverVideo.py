@@ -4,7 +4,7 @@ from threading import Thread
 
 HOST = "192.168.157.206"
 PORT = 4000
-BufferSize = 4096
+BufferSize = 640*480*3 + 4*1024 + 3
 addresses = {}
 
 def Connections():
@@ -19,14 +19,16 @@ def Connections():
 
 def ClientConnection(client):
     while True:
-        data = client.recv(BufferSize)
-        broadcast(client, data)
+        try:
+            data = client.recv(BufferSize)
+            broadcast(client, data)
+        except:
+            continue
 
 def broadcast(clientSocket, data_to_be_sent):
     for client in addresses:
         if client != clientSocket:
             client.sendall(data_to_be_sent)
-
 
 server = socket(family=AF_INET, type=SOCK_STREAM)
 try:
