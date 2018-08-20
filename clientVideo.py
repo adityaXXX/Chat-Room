@@ -34,6 +34,8 @@ def SendMedia():
             databytes = jpg_as_text + b'xXx' + data
             print("Sending Media...")
             client.sendall(databytes)
+        except:
+            continue
 
 def RecieveMedia():
     while True:
