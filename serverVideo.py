@@ -25,7 +25,7 @@ def ClientConnection(client):
 def broadcast(clientSocket, data_to_be_sent):
     for client in addresses:
         if client != clientSocket:
-            client.sendall(data)
+            client.sendall(data_to_be_sent)
 
 
 server = socket(family=AF_INET, type=SOCK_STREAM)

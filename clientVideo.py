@@ -33,7 +33,7 @@ def SendVideo():
     frame = wvs.read()
     cv2_im = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
     frame = cv2.resize(cv2_im, (640, 480))
-    frame = np.array(frame).reshape(1, ln)
+    frame = np.array(frame).reshape(1, lnF)
     jpg_as_text = bytearray(frame)
     print("Sending Frames...")
     client.sendall(jpg_as_text)
