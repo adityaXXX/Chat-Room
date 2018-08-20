@@ -5,16 +5,18 @@ from threading import Thread
 import numpy as np
 import pyaudio
 from array import array
+import keyboard
 
 HOST = "192.168.157.206"
 PORT = 4000
 BufferSize = 4096
-ln = 640*480*3
+lnF = 640*480*3
 
 FORMAT=pyaudio.paInt16
 CHANNELS=2
 RATE=44100
 CHUNK=1024
+lnS = 4096
 
 waitIn = 0
 waitOut = 0
@@ -24,18 +26,41 @@ def SendAudio():
     dataChunk = array('h', data)
     vol = max(dataChunk)
     # if(vol > 500):
-    print("Recording Sound...")
-    client.send(data)
+    print("Recording Sound...") ################# CHECK
+    client.sendall(data)
+
+def SendVideo():
+    frame = wvs.read()
+    cv2_im = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+    frame = cv2.resize(cv2_im, (640, 480))
+    frame = np.array(frame).reshape(1, ln)
+    jpg_as_text = bytearray(frame)
+    print("Sending Frames...")
+    client.sendall(jpg_as_text)
+
+def sending():
+    print("In sending...")
+    while True:
+        print("Sending Video...")
+        SendVideo()
+        print("Sending Audio...")
+        SendAudio()
 
 def RecieveAudio():
-    data = client.recv(BufferSize)
+    data = b''
+    while True:
+        to_read = lnS - len(data)
+        if to_read > CHUNK:
+            data += client.recv(CHUNK)
+        else:
+            data += client.recv(to_read)
+            break
     stream.write(data)
-
 
 def RecieveVideo():
     data = b''
     while True:
-        to_read = ln - len(data)
+        to_read = lnF - len(data)
         if to_read > BufferSize:
             data += client.recv(BufferSize)
         else:
@@ -46,47 +71,13 @@ def RecieveVideo():
     cv_image = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
     cv2.imshow("Stream", cv_image)
 
-
-def SendVideo():
-    frame = wvs.read()
-    cv2_im = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-    frame = cv2.resize(cv2_im, (640, 480))
-    frame = np.array(frame).reshape(1, ln)
-    jpg_as_text = bytearray(frame)
-    client.sendall(jpg_as_text)
-##            print("Client is sending Frames...")
-##                client.send(b'')
-
-def sending():
-    print('Sending Video and Audio feed...')
-    while True:
-        client.send(("Sending Audio From Client").encode())
-        flag = client.recv(BufferSize).decode()
-        if flag == "Sending Audio From Client Confirmed":
-            SendAudio()
-        flag = client.recv(BufferSize).decode("utf-8")
-        if flag == "Broadcasted":
-            client.send(("Sending Video From Client").encode())
-            flag = client.recv(BufferSize).decode()
-            if flag == "Sending Video From Client Confirmed":
-                SendVideo()
-
-
-
 def recieving():
-    print('Recieving Video and Audio feed...')
+    print("In recieving...")
     while True:
-        flag = client.recv(BufferSize).decode()
-        if flag == "Broadcasting Sound":
-            client.send(("Broadcast Sound").encode())
-            RecieveAudio()
-        flag = client.recv(BufferSize).decode()
-        if flag == "Broadcasting Video":
-            client.send(("Broadcast Video").encode())
-            RecieveVideo()
-        if keyboard.is_pressed('q'):
-##                    waitOut == 1
-            break
+        RecieveVideo()
+        print ("########Recieved Video########")
+        RecieveAudio()
+        print ("############Recieved audio##########")
 
 
 client = socket(family=AF_INET, type=SOCK_STREAM)
