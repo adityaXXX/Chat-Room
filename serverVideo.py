@@ -3,9 +3,10 @@ from threading import Thread
 
 
 HOST = "192.168.157.206"
-PORT = 4000
-BufferSize = 640*480*3 + 4*1024 + 3
+PORT = 3000
+BufferSize = 4096
 addresses = {}
+threads = {}
 
 def Connections():
     while True:
@@ -13,15 +14,28 @@ def Connections():
             client, addr = server.accept()
             print("{} is connected!!".format(addr))
             addresses[client] = addr
-            Thread(target=ClientConnection, args=(client, )).start()
+            if len(addresses) > 1:
+                for sockets in addresses:
+                    if sockets not in threads:
+                        threads[sockets] = True
+                        sockets.send(("start").encode(encoding='utf_8'))
+                        Thread(target=ClientConnection, args=(sockets, )).start()
+            else:
+                continue
         except:
             continue
 
 def ClientConnection(client):
     while True:
         try:
-            data = client.recv(BufferSize)
-            broadcast(client, data)
+            status = client.recv(BufferSize).decode("utf-8")
+            if status == "NOT ACTIVE":
+                del addresses[client]
+                del threads[client]
+                break
+            elif status == "ACTIVE":
+                data = client.recv(BufferSize)
+                broadcast(client, data)
         except:
             continue
 
