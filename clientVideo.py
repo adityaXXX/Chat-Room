@@ -7,24 +7,18 @@ import pyaudio
 from array import array
 
 HOST = "192.168.157.167"
-PORT = 3000
-BufferSize = 4096
+PORT = 10000
 
 FORMAT=pyaudio.paInt16
 CHANNELS=2
 RATE=44100
 CHUNK=1024
 lnF = 640*480*3
-ln = lnF + 4*CHUNK + 3
+BufferSize = lnF + 4*CHUNK + 3
 
 def SendMedia():
     while True:
         try:
-            if active == True:
-                client.send(("ACTIVE").encode())
-            else:
-                client.send(("NOT ACTIVE").encode())
-                client.close()
             frame = wvs.read()
             cv2_im = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
             frame = cv2.resize(frame, (640, 480))
@@ -37,8 +31,16 @@ def SendMedia():
             if(vol > 500):
                 print("Recording Sound...")
             databytes = jpg_as_text + b'xXx' + data
-            print("Sending Media...")
-            client.sendall(databytes)
+            if (len(databytes) == BufferSize):
+                if active == True:
+                    client.send(("ACTIVE").encode())
+                else:
+                    client.send(("INTIVE").encode())
+                    client.close()
+                print("Sending Media...")
+                client.sendall(databytes)
+            else:
+                print("length different#############")
         except:
             continue
 
@@ -46,7 +48,7 @@ def RecieveMedia():
     while True:
         try:
             databytes = b''
-            databytes += client.recv(ln)
+            databytes += client.recv(BufferSize)
             img, data = databytes.split(b'xXx')
             print("Recieving Media..")
             img = list(img)
@@ -67,7 +69,7 @@ wvs = WebcamVideoStream(0).start()
 audio=pyaudio.PyAudio()
 stream=audio.open(format=FORMAT,channels=CHANNELS, rate=RATE, input=True, output = True, frames_per_buffer=CHUNK)
 
-initiation = client.recv(BufferSize).decode()
+initiation = client.recv(5).decode()
 active = True
 if initiation == "start":
     RecieveFrameThread = Thread(target=RecieveMedia).start()
