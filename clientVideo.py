@@ -6,7 +6,7 @@ import numpy as np
 import pyaudio
 from array import array
 
-HOST = "192.168.157.206"
+HOST = "192.168.157.167"
 PORT = 3000
 BufferSize = 4096
 
@@ -21,9 +21,9 @@ def SendMedia():
     while True:
         try:
             if active == True:
-                client.send(("ACTIVE").encode(encoding='utf_8'))
+                client.send(("ACTIVE").encode())
             else:
-                client.send(("NOT ACTIVE").encode(encoding='utf_8'))
+                client.send(("NOT ACTIVE").encode())
                 client.close()
             frame = wvs.read()
             cv2_im = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
@@ -46,8 +46,7 @@ def RecieveMedia():
     while True:
         try:
             databytes = b''
-            while len(databytes != ln):
-                databytes += client.recv(BufferSize)
+            databytes += client.recv(ln)
             img, data = databytes.split(b'xXx')
             print("Recieving Media..")
             img = list(img)
@@ -68,7 +67,7 @@ wvs = WebcamVideoStream(0).start()
 audio=pyaudio.PyAudio()
 stream=audio.open(format=FORMAT,channels=CHANNELS, rate=RATE, input=True, output = True, frames_per_buffer=CHUNK)
 
-initiation = client.recv(BufferSize).decode("utf-8")
+initiation = client.recv(BufferSize).decode()
 active = True
 if initiation == "start":
     RecieveFrameThread = Thread(target=RecieveMedia).start()

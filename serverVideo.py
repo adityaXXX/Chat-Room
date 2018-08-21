@@ -4,7 +4,8 @@ from threading import Thread
 
 HOST = "192.168.157.206"
 PORT = 3000
-BufferSize = 4096
+lnF = 640*480*3
+BufferSize = lnF + 4*CHUNK + 3
 addresses = {}
 threads = {}
 
@@ -18,7 +19,7 @@ def Connections():
                 for sockets in addresses:
                     if sockets not in threads:
                         threads[sockets] = True
-                        sockets.send(("start").encode(encoding='utf_8'))
+                        sockets.send(("start").encode()
                         Thread(target=ClientConnection, args=(sockets, )).start()
             else:
                 continue
@@ -28,8 +29,8 @@ def Connections():
 def ClientConnection(client):
     while True:
         try:
-            status = client.recv(BufferSize).decode("utf-8")
-            if status == "NOT ACTIVE":
+            status = client.recv(6).decode()
+            if status != "ACTIVE":
                 del addresses[client]
                 del threads[client]
                 break
