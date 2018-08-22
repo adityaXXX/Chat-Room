@@ -31,7 +31,7 @@ def ClientConnection(client):
     while True:
         try:
             status = client.recv(6).decode()
-            print (status {} .format(addresses[client]))
+            print ("status:- {} ".format(addresses[client]))
             if status == "INTIVE":
                 del addresses[client]
                 del threads[client]
