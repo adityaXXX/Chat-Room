@@ -6,7 +6,7 @@ import numpy as np
 import pyaudio
 from array import array
 
-HOST = "192.168.43.215"
+HOST = "192.168.157.206"
 PORT = 3000
 
 FORMAT=pyaudio.paInt16
@@ -46,6 +46,7 @@ def SendMedia():
                 else:
                     bytesToBeSend = databytes
                     client.sendall(bytesToBeSend)
+                    databytes = b''
             print("##### Data Sent!! #####")
         except:
             continue
@@ -63,11 +64,10 @@ def RecieveMedia():
             img, data = databytes.split(b'xXx')
             print("Image Frame Size:- {}, Sound Frame Size:- {}".format(len(img), len(data)))
             if len(databytes) == BufferSize:
-                img, data = databytes.split(b'xXx')
                 # print("Recieving Media..")
                 # img = list(img)
                 # img = np.array(img, dtype = np.uint8).reshape(480, 640, 3)
-                # cv_image = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
+                # #cv_image = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
                 # cv2.imshow("Stream", cv_image)
                 # if cv2.waitKey(1) == 27:
                 #     active = False

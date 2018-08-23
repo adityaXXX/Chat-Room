@@ -2,7 +2,7 @@ from socket import socket, AF_INET, SOCK_STREAM
 from threading import Thread
 
 
-HOST = "192.168.43.215"
+HOST = "192.168.157.206"
 PORT = 3000
 lnF = 640*480*3
 CHUNK = 1024
@@ -48,7 +48,7 @@ def ClientConnection(client):
                 else:
                     databytes = client.recv(to_read)
                     i += len(databytes)
-                    broadcast(databytes)
+                    broadcast(client, databytes)
             print("YES!!!!!!!!!" if i == BufferSize else "NO!!!!!!!!!!!!")
         except:
             continue
