@@ -6,8 +6,8 @@ import numpy as np
 import pyaudio
 from array import array
 
-HOST = "192.168.157.167"
-PORT = 10000
+HOST = "192.168.43.215"
+PORT = 3000
 
 FORMAT=pyaudio.paInt16
 CHANNELS=2
@@ -31,16 +31,22 @@ def SendMedia():
             if(vol > 500):
                 print("Recording Sound...")
             databytes = jpg_as_text + b'xXx' + data
-            if (len(databytes) == BufferSize):
-                if active == True:
-                    client.send(("ACTIVE").encode())
+            # if active == True: ################## INCLUDE THIS TOO
+            #     client.send(("ACTIVE").encode())
+            # else:
+            #     client.send(("INTIVE").encode())
+            #     client.close()
+            #     break
+            bytesToBeSend = b''
+            while len(databytes) > 0:
+                if (4 * CHUNK) <= len(databytes):
+                    bytesToBeSend = databytes[:(4 * CHUNK)]
+                    databytes = databytes[(4 * CHUNK):]
+                    client.sendall(bytesToBeSend)
                 else:
-                    client.send(("INTIVE").encode())
-                    client.close()
-                print("Sending Media...")
-                client.sendall(databytes)
-            else:
-                print("length different#############")
+                    bytesToBeSend = databytes
+                    client.sendall(bytesToBeSend)
+            print("##### Data Sent!! #####")
         except:
             continue
 
@@ -48,17 +54,27 @@ def RecieveMedia():
     while True:
         try:
             databytes = b''
-            databytes += client.recv(BufferSize)
+            while len(databytes) != BufferSize:
+                to_read = BufferSize - len(databytes)
+                if to_read > (4 * CHUNK):
+                    databytes += client.recv(4 * CHUNK)
+                else:
+                    databytes += client.recv(to_read)
             img, data = databytes.split(b'xXx')
-            print("Recieving Media..")
-            img = list(img)
-            img = np.array(img, dtype = np.uint8).reshape(480, 640, 3)
-            cv_image = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
-            cv2.imshow("Stream", cv_image)
-            if cv2.waitKey(1) == 27:
-                active = False
-                cv2.destroyAllWindows()
-            stream.write(data)
+            print("Image Frame Size:- {}, Sound Frame Size:- {}".format(len(img), len(data)))
+            if len(databytes) == BufferSize:
+                img, data = databytes.split(b'xXx')
+                # print("Recieving Media..")
+                # img = list(img)
+                # img = np.array(img, dtype = np.uint8).reshape(480, 640, 3)
+                # cv_image = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
+                # cv2.imshow("Stream", cv_image)
+                # if cv2.waitKey(1) == 27:
+                #     active = False
+                #     cv2.destroyAllWindows()
+                # stream.write(data)
+            else:
+                print("Data CORRUPTED")
         except:
             continue
 

@@ -2,7 +2,7 @@ from socket import socket, AF_INET, SOCK_STREAM
 from threading import Thread
 
 
-HOST = "192.168.157.206"
+HOST = "192.168.43.215"
 PORT = 3000
 lnF = 640*480*3
 CHUNK = 1024
@@ -30,15 +30,26 @@ def Connections():
 def ClientConnection(client):
     while True:
         try:
-            status = client.recv(6).decode()
-            print ("status:- {} ".format(addresses[client]))
-            if status == "INTIVE":
-                del addresses[client]
-                del threads[client]
-                break
-            elif status == "ACTIVE":
-                data = client.recv(BufferSize)
-                broadcast(client, data)
+            # status = client.recv(6).decode() ################ INCLUDE THIS TOO
+            # print ("status:- {} ".format(status))
+            # if status == "INTIVE":
+            #     del addresses[client]
+            #     del threads[client]
+            #     break
+            # elif status == "ACTIVE":
+            databytes = b''
+            i = 0
+            while i != BufferSize:
+                to_read = BufferSize - i
+                if to_read > (4 * CHUNK):
+                    databytes = client.recv(4 * CHUNK)
+                    i += len(databytes)
+                    broadcast(client, databytes)
+                else:
+                    databytes = client.recv(to_read)
+                    i += len(databytes)
+                    broadcast(databytes)
+            print("YES!!!!!!!!!" if i == BufferSize else "NO!!!!!!!!!!!!")
         except:
             continue
 
