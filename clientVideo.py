@@ -5,6 +5,8 @@ from threading import Thread
 import numpy as np
 import pyaudio
 from array import array
+import zlib
+import struct
 
 HOST = "192.168.157.206"
 PORT = 3000
@@ -31,13 +33,10 @@ def SendMedia():
             if(vol > 500):
                 print("Recording Sound...")
             databytes = jpg_as_text + b'xXx' + data
-            # if active == True: ################## INCLUDE THIS TOO
-            #     client.send(("ACTIVE").encode())
-            # else:
-            #     client.send(("INTIVE").encode())
-            #     client.close()
-            #     break
+            databytes = zlib.compress(databytes, 9)
+            length = struct.pack('!I', len(databytes))
             bytesToBeSend = b''
+            client.sendall(length)
             while len(databytes) > 0:
                 if (4 * CHUNK) <= len(databytes):
                     bytesToBeSend = databytes[:(4 * CHUNK)]
@@ -54,29 +53,35 @@ def SendMedia():
 def RecieveMedia():
     while True:
         try:
-            databytes = b''
-            while len(databytes) != BufferSize:
-                to_read = BufferSize - len(databytes)
-                if to_read > (4 * CHUNK):
-                    databytes += client.recv(4 * CHUNK)
-                else:
-                    databytes += client.recv(to_read)
+            lengthbuf = recvall(4)
+            length, = struct.unpack('!I', lengthbuf)
+            databytes = recvall(length)
+            databytes = zlib.decompress(databytes)
             img, data = databytes.split(b'xXx')
             print("Image Frame Size:- {}, Sound Frame Size:- {}".format(len(img), len(data)))
             if len(databytes) == BufferSize:
-                # print("Recieving Media..")
-                # img = list(img)
-                # img = np.array(img, dtype = np.uint8).reshape(480, 640, 3)
-                # #cv_image = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
-                # cv2.imshow("Stream", cv_image)
-                # if cv2.waitKey(1) == 27:
-                #     active = False
-                #     cv2.destroyAllWindows()
-                # stream.write(data)
+                print("Recieving Media..")
+                img = list(img)
+                img = np.array(img, dtype = np.uint8).reshape(480, 640, 3)
+                cv2.imshow("Stream", img)
+                if cv2.waitKey(1) == 27:
+                    active = False
+                    cv2.destroyAllWindows()
+                stream.write(data)
             else:
                 print("Data CORRUPTED")
         except:
             continue
+
+def recvall(size):
+    databytes = b''
+    while len(databytes) != size:
+        to_read = size - len(databytes)
+        if to_read > (4 * CHUNK):
+            databytes += client.recv(4 * CHUNK)
+        else:
+            databytes += client.recv(to_read)
+    return databytes
 
 client = socket(family=AF_INET, type=SOCK_STREAM)
 client.connect((HOST, PORT))
