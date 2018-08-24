@@ -16,7 +16,7 @@ CHANNELS=2
 RATE=44100
 CHUNK=1024
 lnF = 640*480*3
-BufferSize = lnF + 4*CHUNK + 3
+
 
 def SendMedia():
     while True:
@@ -26,14 +26,7 @@ def SendMedia():
             frame = cv2.resize(frame, (640, 480))
             frame = np.array(frame).reshape(1, lnF)
             jpg_as_text = bytearray(frame)
-
-            data = stream.read(CHUNK)
-            dataChunk = array('h', data)
-            vol = max(dataChunk)
-            if(vol > 500):
-                print("Recording Sound...")
-            databytes = jpg_as_text + b'xXx' + data
-            databytes = zlib.compress(databytes, 9)
+            databytes = zlib.compress(jpg_as_text, 9)
             length = struct.pack('!I', len(databytes))
             bytesToBeSend = b''
             client.sendall(length)
@@ -53,13 +46,12 @@ def SendMedia():
 def RecieveMedia():
     while True:
         try:
-            lengthbuf = recvall(4)
+            lengthbuf = recvall(client , 4)
             length, = struct.unpack('!I', lengthbuf)
-            databytes = recvall(length)
+            databytes = recvall(client , length)
             databytes = zlib.decompress(databytes)
-            img, data = databytes.split(b'xXx')
             print("Image Frame Size:- {}, Sound Frame Size:- {}".format(len(img), len(data)))
-            if len(databytes) == BufferSize:
+            if len(databytes) == lnF:
                 print("Recieving Media..")
                 img = list(img)
                 img = np.array(img, dtype = np.uint8).reshape(480, 640, 3)
@@ -67,13 +59,29 @@ def RecieveMedia():
                 if cv2.waitKey(1) == 27:
                     active = False
                     cv2.destroyAllWindows()
-                stream.write(data)
             else:
                 print("Data CORRUPTED")
         except:
             continue
 
-def recvall(size):
+def SendSoundMedia():
+    while True:
+        data = stream.read(CHUNK)
+        dataChunk = array('h', data)
+        vol = max(dataChunk)
+        if(vol > 500):
+            print("Recording Sound...")
+        clientaudio.sendall(data)
+
+def RecieveSoundMedia():
+    while True:
+        try:
+            sound = recvall(clientaudio , 4096)
+            stream.write(sound)
+        except:
+            continue
+
+def recvall(client , size):
     databytes = b''
     while len(databytes) != size:
         to_read = size - len(databytes)
@@ -86,6 +94,9 @@ def recvall(size):
 client = socket(family=AF_INET, type=SOCK_STREAM)
 client.connect((HOST, PORT))
 
+clientaudio = socket(family=AF_INET, type=SOCK_STREAM)
+clientaudio.connect((HOST, PORT+1000))
+
 wvs = WebcamVideoStream(0).start()
 audio=pyaudio.PyAudio()
 stream=audio.open(format=FORMAT,channels=CHANNELS, rate=RATE, input=True, output = True, frames_per_buffer=CHUNK)
@@ -95,3 +106,5 @@ active = True
 if initiation == "start":
     RecieveFrameThread = Thread(target=RecieveMedia).start()
     SendFrameThread = Thread(target=SendMedia).start()
+    RecieveSoundThread = Thread(target=RecieveSoundMedia).start()
+    SendSoundThread = Thread(target=SendSoundMedia).start()
