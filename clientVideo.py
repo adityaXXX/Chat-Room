@@ -11,42 +11,31 @@ import struct
 HOST = "192.168.157.206"
 PORT = 3000
 
-FORMAT=pyaudio.paInt16
-CHANNELS=2
+FORMAT=pyaudio.paInt8
+CHANNELS=1
 RATE=44100
 CHUNK=1024
 lnF = 640*480*3
-BufferSize = lnF + 4*CHUNK + 3
 
-sound = b''
-
-def SendSound():
-    while True:
-        sound += stream.read(CHUNK)
-        dataChunk = array('h', data)
-        vol = max(dataChunk)
-        if(vol > 500):
-            print("Recording Sound...")
-
-
-def SendFrame():
+def SendMedia():
     while True:
         try:
             frame = wvs.read()
             cv2_im = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
             frame = cv2.resize(frame, (640, 480))
-            frame = np.array(frame).reshape(1, lnF)
-            jpg_as_text = bytearray(frame)
-            databytes = jpg_as_text + b'xXx' + sound
-            sound = b''
-            databytes = zlib.compress(databytes, 9)
+            frame = np.array(frame, dtype = np.uint8).reshape(1, lnF)
+            encode_param = [int(cv2.IMWRITE_JPEG_QUALITY), 90]
+            result, encimg = cv2.imencode('.jpg', frame, encode_param)
+            jpg_as_text = bytearray(encimg)
+            sound = stream.read(CHUNK)
+            databytes = jpg_as_text + b'SPLIT' +  data
             length = struct.pack('!I', len(databytes))
             bytesToBeSend = b''
             client.sendall(length)
             while len(databytes) > 0:
-                if (4 * CHUNK) <= len(databytes):
-                    bytesToBeSend = databytes[:(4 * CHUNK)]
-                    databytes = databytes[(4 * CHUNK):]
+                if (100 * CHUNK) <= len(databytes):
+                    bytesToBeSend = databytes[:(100 * CHUNK)]
+                    databytes = databytes[(100 * CHUNK):]
                     client.sendall(bytesToBeSend)
                 else:
                     bytesToBeSend = databytes
@@ -62,18 +51,18 @@ def RecieveMedia():
             lengthbuf = recvall(4)
             length, = struct.unpack('!I', lengthbuf)
             databytes = recvall(length)
-            databytes = zlib.decompress(databytes)
-            img, data = databytes.split(b'xXx')
-            print("Image Frame Size:- {}, Sound Frame Size:- {}".format(len(img), len(data)))
-            if len(databytes) == BufferSize:
+            img, data = databytes.split(b'SPLIT')
+            stream.write(data)
+            if len(databytes) == length:
                 print("Recieving Media..")
-                img = list(img)
+                img = np.array(list(img))
+                img = cv2.imdecode(img, 1)
                 img = np.array(img, dtype = np.uint8).reshape(480, 640, 3)
+                print("Image Frame Size:- {}, Sound Frame Size:- {}".format(len(img), len(data)))
                 cv2.imshow("Stream", img)
                 if cv2.waitKey(1) == 27:
                     active = False
                     cv2.destroyAllWindows()
-                stream.write(data)
             else:
                 print("Data CORRUPTED")
         except:
@@ -83,8 +72,8 @@ def recvall(size):
     databytes = b''
     while len(databytes) != size:
         to_read = size - len(databytes)
-        if to_read > (4 * CHUNK):
-            databytes += client.recv(4 * CHUNK)
+        if to_read > (100 * CHUNK):
+            databytes += client.recv(100 * CHUNK)
         else:
             databytes += client.recv(to_read)
     return databytes
@@ -101,4 +90,3 @@ active = True
 if initiation == "start":
     RecieveFrameThread = Thread(target=RecieveMedia).start()
     SendFrameThread = Thread(target=SendMedia).start()
-    SendSoundThread = Thread(target=SendSound).start()
