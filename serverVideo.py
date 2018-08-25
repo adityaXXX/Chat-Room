@@ -7,25 +7,20 @@ PORT = 3000
 lnF = 640*480*3
 CHUNK = 1024
 addresses = {}
-addressesaudio = {}
 threads = {}
 
 def Connections():
     while True:
         try:
             client, addr = server.accept()
-            clientaudio, addr1 = serveraudio.accept()
-            print("{} is connected!! For video".format(addr))
-            print("{} is connected!! For audio".format(addr1))
+            print("{} is connected!!".format(addr))
             addresses[client] = addr
-            addressesaudio[client] = clientaudio
             if len(addresses) > 1:
                 for sockets in addresses:
                     if sockets not in threads:
                         threads[sockets] = True
                         sockets.send(("start").encode())
                         Thread(target=ClientConnection, args=(sockets, )).start()
-                        Thread(target=ClientConnectionAudio, args=(addressesaudio[sockets], )).start()
             else:
                 continue
         except:
@@ -40,22 +35,8 @@ def ClientConnection(client):
         except:
             continue
 
-def ClientConnectionAudio(clientaudio):
-    while True:
-        try:
-            recvall(clientaudio , 4096)
-        except:
-            continue
-
-
 def broadcast(clientSocket, data_to_be_sent):
     for client in addresses:
-        if client != clientSocket:
-            client.sendall(data_to_be_sent)
-
-
-def broadcastaudio(clientSocket, data_to_be_sent):
-    for client in addressesaudio[client]:
         if client != clientSocket:
             client.sendall(data_to_be_sent)
 
@@ -82,18 +63,14 @@ def recvall(client, BufferSize):
             return databytes
 
 server = socket(family=AF_INET, type=SOCK_STREAM)
-serveraudio = socket(family=AF_INET, type=SOCK_STREAM)
 try:
     server.bind((HOST, PORT))
-    serveraudio.bind((HOST,PORT+1000))
 except OSError:
     print("Server Busy")
 
 server.listen(2)
-serveraudio.listen(2)
 print("Waiting for connection..")
 AcceptThread = Thread(target=Connections)
 AcceptThread.start()
 AcceptThread.join()
 server.close()
-serveraudio.close()
