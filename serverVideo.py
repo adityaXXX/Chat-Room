@@ -45,8 +45,8 @@ def recvall(client, BufferSize):
         i = 0
         while i != BufferSize:
             to_read = BufferSize - i
-            if to_read > (100 * CHUNK):
-                databytes = client.recv(100 * CHUNK)
+            if to_read > (1000 * CHUNK):
+                databytes = client.recv(1000 * CHUNK)
                 i += len(databytes)
                 broadcast(client, databytes)
             else:

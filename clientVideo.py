@@ -17,25 +17,36 @@ RATE=44100
 CHUNK=1024
 lnF = 640*480*3
 
-def SendMedia():
+sound = b''
+
+def SendSound():
+    global sound
+    while True:
+        sound += stream.read(CHUNK)
+        dataChunk = array('h', data)
+        vol = max(dataChunk)
+        if(vol > 500):
+            print("Recording Sound...")
+
+def SendFrame():
+    global sound
     while True:
         try:
             frame = wvs.read()
             cv2_im = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
             frame = cv2.resize(frame, (640, 480))
             frame = np.array(frame, dtype = np.uint8).reshape(1, lnF)
-            encode_param = [int(cv2.IMWRITE_JPEG_QUALITY), 90]
-            result, encimg = cv2.imencode('.jpg', frame, encode_param)
-            jpg_as_text = bytearray(encimg)
-            sound = stream.read(CHUNK)
-            databytes = jpg_as_text + b'SPLIT' +  data
+            jpg_as_text = bytearray(frame)
+
+            databytes = zlib.compress(jpg_as_text, 9) + b'SPLIT' +  zlib.compress(sound, 9)
+            sound = b''
             length = struct.pack('!I', len(databytes))
             bytesToBeSend = b''
             client.sendall(length)
             while len(databytes) > 0:
-                if (100 * CHUNK) <= len(databytes):
-                    bytesToBeSend = databytes[:(100 * CHUNK)]
-                    databytes = databytes[(100 * CHUNK):]
+                if (1000 * CHUNK) <= len(databytes):
+                    bytesToBeSend = databytes[:(1000 * CHUNK)]
+                    databytes = databytes[(1000 * CHUNK):]
                     client.sendall(bytesToBeSend)
                 else:
                     bytesToBeSend = databytes
@@ -52,11 +63,11 @@ def RecieveMedia():
             length, = struct.unpack('!I', lengthbuf)
             databytes = recvall(length)
             img, data = databytes.split(b'SPLIT')
-            stream.write(data)
+            img, data = zlib.decompress(img), zlib.decompress(data)
             if len(databytes) == length:
+                stream.write(data)
                 print("Recieving Media..")
                 img = np.array(list(img))
-                img = cv2.imdecode(img, 1)
                 img = np.array(img, dtype = np.uint8).reshape(480, 640, 3)
                 print("Image Frame Size:- {}, Sound Frame Size:- {}".format(len(img), len(data)))
                 cv2.imshow("Stream", img)
@@ -72,8 +83,8 @@ def recvall(size):
     databytes = b''
     while len(databytes) != size:
         to_read = size - len(databytes)
-        if to_read > (100 * CHUNK):
-            databytes += client.recv(100 * CHUNK)
+        if to_read > (1000 * CHUNK):
+            databytes += client.recv(1000 * CHUNK)
         else:
             databytes += client.recv(to_read)
     return databytes
@@ -89,4 +100,5 @@ initiation = client.recv(5).decode()
 active = True
 if initiation == "start":
     RecieveFrameThread = Thread(target=RecieveMedia).start()
-    SendFrameThread = Thread(target=SendMedia).start()
+    SendFrameThread = Thread(target=SendFrame).start()
+    SendSoundThread = Thread(target=SendSound).start()
