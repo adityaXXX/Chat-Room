@@ -2,7 +2,7 @@ from socket import socket, AF_INET, SOCK_STREAM
 from threading import Thread
 import struct
 
-HOST = "192.168.157.206"
+HOST = input("Enter Host IP\n")
 PORT = 3000
 lnF = 640*480*3
 CHUNK = 1024
