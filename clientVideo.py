@@ -1,6 +1,6 @@
 import cv2
 from socket import socket, AF_INET, SOCK_STREAM
-from imutils import WebcamVideoStream
+from imutils.video import WebcamVideoStream
 from threading import Thread
 import numpy as np
 import zlib
@@ -55,7 +55,8 @@ def RecieveMedia():
                     cv2.destroyAllWindows()
             else:
                 print("Data CORRUPTED")
-
+        except:
+            continue
 
 def recvall(size):
     databytes = b''

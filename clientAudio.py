@@ -20,7 +20,9 @@ def SendAudio():
         vol = max(dataChunk)
         if(vol > 500):
             print("Recording Sound...")
-        client.send(data)
+        else:
+            print("Silence..")
+        client.sendall(data)
 
 
 def RecieveAudio():
