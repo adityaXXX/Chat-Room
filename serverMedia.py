@@ -31,20 +31,31 @@ def ConnectionsVideo():
 
 def ConnectionsSound():
     while True:
-        try:
-            clientAudio, addr = serverAudio.accept()
-            print("{} is connected!!".format(addr))
-            addressesAudio[clientAudio] = addr
-            Thread(target=ClientConnectionSound, args=(clientAudio, )).start()
-        except:
-            continue
+        if quit_ip == None
+            try:
+                clientAudio, addr = serverAudio.accept()
+                print("{} is connected!!".format(addr))
+                addressesAudio[clientAudio] = addr[0]
+                Thread(target=ClientConnectionSound, args=(clientAudio, )).start()
+            except:
+                continue
+        else:
+            for client in addressesAudio:
+                if addressesAudio[client] == quit_ip:
+                    del addressesAudio[client]
+            quit_ip = None
 
 def ClientConnectionVideo(clientVideo):
     while True:
         try:
             lengthbuf = recvall(clientVideo, 4)
             length, = struct.unpack('!I', lengthbuf)
+            STATUS  = recvall(clientVideo , 6)
             recvall(clientVideo, length)
+            if STATUS == "INTIVE":
+                del addresses[clientVideo]
+                del threads[clientVideo]
+                quit_ip = addresses[clientVideo][0]
         except:
             continue
 
@@ -66,15 +77,15 @@ def recvall(clientVideo, BufferSize):
                 i += len(databytes)
                 broadcastVideo(clientVideo, databytes)
             else:
-                if BufferSize == 4:
+                if BufferSize == 4 or BufferSize == 6:
                     databytes += clientVideo.recv(to_read)
                 else:
                     databytes = clientVideo.recv(to_read)
                 i += len(databytes)
-                if BufferSize != 4:
+                if BufferSize != 4 and BufferSize != 6:
                     broadcastVideo(clientVideo, databytes)
         print("YES!!!!!!!!!" if i == BufferSize else "NO!!!!!!!!!!!!")
-        if BufferSize == 4:
+        if BufferSize == 4 or BufferSize == 6:
             broadcastVideo(clientVideo, databytes)
             return databytes
 
@@ -99,6 +110,8 @@ try:
     serverAudio.bind((HOST, PORT_AUDIO))
 except OSError:
     print("Server Busy")
+
+quit_ip = None
 
 serverAudio.listen(2)
 print("Waiting for connection..")
