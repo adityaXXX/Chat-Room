@@ -75,9 +75,9 @@ def SendFrame():
 def RecieveFrame():
     while True:
         try:
-            lengthbuf = recvall(4)
+            lengthbuf = recvallVideo(4)
             length, = struct.unpack('!I', lengthbuf)
-            databytes = recvall(length)
+            databytes = recvallVideo(length)
             img = zlib.decompress(databytes)
             if len(databytes) == length:
                 print("Recieving Media..")

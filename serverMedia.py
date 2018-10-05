@@ -3,8 +3,8 @@ from threading import Thread
 import struct
 
 HOST = input("Enter Host IP\n")
-PORT_VIDEO = 3000
-PORT_AUDIO = 4000
+PORT_VIDEO = 4000
+PORT_AUDIO = 5000
 lnF = 640*480*3
 CHUNK = 1024
 BufferSize = 4096
@@ -104,7 +104,7 @@ serverAudio.listen(2)
 print("Waiting for connection..")
 AcceptThreadAudio = Thread(target=ConnectionsSound)
 AcceptThreadAudio.start()
-AcceptThreadAudio.join()
+
 
 serverVideo.listen(2)
 print("Waiting for connection..")
