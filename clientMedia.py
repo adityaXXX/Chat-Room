@@ -1,4 +1,4 @@
-clientVideoSocketimport cv2
+import cv2
 from socket import socket, AF_INET, SOCK_STREAM
 from imutils.video import WebcamVideoStream
 import pyaudio
