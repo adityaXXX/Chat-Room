@@ -3,8 +3,8 @@ from threading import Thread
 import struct
 
 HOST = input("Enter Host IP\n")
-PORT_VIDEO = 4000
-PORT_AUDIO = 5000
+PORT_VIDEO = 3000
+PORT_AUDIO = 4000
 lnF = 640*480*3
 CHUNK = 1024
 BufferSize = 4096
