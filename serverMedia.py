@@ -2,9 +2,10 @@ from socket import socket, AF_INET, SOCK_STREAM
 from threading import Thread
 import struct
 
-HOST = input("Enter Host IP\n")
-PORT_VIDEO = 4000
-PORT_AUDIO = 5000
+# HOST = input("Enter Host IP\n")
+HOST = '192.168.157.206'
+PORT_VIDEO = 3000
+PORT_AUDIO = 4000
 lnF = 640*480*3
 CHUNK = 1024
 BufferSize = 4096
@@ -14,58 +15,53 @@ threads = {}
 
 def ConnectionsVideo():
     while True:
-        try:
-            clientVideo, addr = serverVideo.accept()
-            print("{} is connected!!".format(addr))
-            addresses[clientVideo] = addr
-            if len(addresses) > 1:
-                for sockets in addresses:
-                    if sockets not in threads:
-                        threads[sockets] = True
-                        sockets.send(("start").encode())
-                        Thread(target=ClientConnectionVideo, args=(sockets, )).start()
-            else:
-                continue
-        except:
+        clientVideo, addr = serverVideo.accept()
+        print("{} is connected!!".format(addr))
+        addresses[clientVideo] = addr
+        quitUsers[addresses[clientVideo][0]] = False
+        if len(addresses) > 1:
+            for sockets in list(addresses):
+                if sockets not in threads:
+                    threads[sockets] = True
+                    sockets.send(("start").encode())
+                    Thread(target=ClientConnectionVideo, args=(sockets, )).start()
+
+        else:
             continue
+
 
 def ConnectionsSound():
     while True:
-        if quit_ip == None
-            try:
-                clientAudio, addr = serverAudio.accept()
-                print("{} is connected!!".format(addr))
-                addressesAudio[clientAudio] = addr[0]
-                Thread(target=ClientConnectionSound, args=(clientAudio, )).start()
-            except:
-                continue
-        else:
-            for client in addressesAudio:
-                if addressesAudio[client] == quit_ip:
-                    del addressesAudio[client]
-            quit_ip = None
+        clientAudio, addr = serverAudio.accept()
+        print("{} is connected!!".format(addr))
+        addressesAudio[clientAudio] = addr[0]
+        Thread(target=ClientConnectionSound, args=(clientAudio, )).start()
+
 
 def ClientConnectionVideo(clientVideo):
     while True:
-        try:
-            lengthbuf = recvall(clientVideo, 4)
-            length, = struct.unpack('!I', lengthbuf)
-            STATUS  = recvall(clientVideo , 6)
-            recvall(clientVideo, length)
-            if STATUS == "INTIVE":
-                del addresses[clientVideo]
-                del threads[clientVideo]
-                quit_ip = addresses[clientVideo][0]
-        except:
-            continue
+        lengthbuf = recvall(clientVideo, 4)
+        length, = struct.unpack('!I', lengthbuf)
+        STATUS  = recvall(clientVideo , 6)
+        STATUS = STATUS.decode()
+        recvall(clientVideo, length-6)
+        if STATUS == "INTIVE":
+            quitUsers[addresses[clientVideo][0]] = True
+            del addresses[clientVideo]
+            del threads[clientVideo]
+            print(len(addresses))
+            break
+
 
 def ClientConnectionSound(clientAudio):
     while True:
-        try:
+        if quitUsers[addressesAudio[clientAudio]] == False:
             data = clientAudio.recv(BufferSize)
             broadcastSound(clientAudio, data)
-        except:
-            continue
+        else:
+            quitUsers[addresses[clientVideo][0]] = True
+            break
+
 
 def recvall(clientVideo, BufferSize):
         databytes = b''
@@ -90,12 +86,12 @@ def recvall(clientVideo, BufferSize):
             return databytes
 
 def broadcastVideo(clientSocket, data_to_be_sent):
-    for clientVideo in addresses:
+    for clientVideo in list(addresses):
         if clientVideo != clientSocket:
             clientVideo.sendall(data_to_be_sent)
 
 def broadcastSound(clientSocket, data_to_be_sent):
-    for clientAudio in addressesAudio:
+    for clientAudio in list(addressesAudio):
         if clientAudio != clientSocket:
             clientAudio.sendall(data_to_be_sent)
 
@@ -111,15 +107,15 @@ try:
 except OSError:
     print("Server Busy")
 
-quit_ip = None
+quitUsers = {}
 
-serverAudio.listen(2)
+serverAudio.listen(4)
 print("Waiting for connection..")
 AcceptThreadAudio = Thread(target=ConnectionsSound)
 AcceptThreadAudio.start()
 
 
-serverVideo.listen(2)
+serverVideo.listen(4)
 print("Waiting for connection..")
 AcceptThreadVideo = Thread(target=ConnectionsVideo)
 AcceptThreadVideo.start()

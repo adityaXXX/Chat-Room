@@ -9,9 +9,10 @@ import numpy as np
 import zlib
 import struct
 
-HOST = input("Enter Server IP\n")
-PORT_VIDEO = 4000
-PORT_AUDIO = 5000
+# HOST = input("Enter Server IP\n")
+HOST = '192.168.157.206'
+PORT_VIDEO = 3000
+PORT_AUDIO = 4000
 
 BufferSize = 4096
 CHUNK=1024
@@ -30,9 +31,9 @@ def SendAudio():
             vol = max(dataChunk)
             if(vol > 500):
                 print("Recording Sound...")
+                clientAudioSocket.sendall(data)
             else:
                 print("Silence..")
-                clientAudioSocket.sendall(data)
         else:
             break
 
@@ -62,11 +63,13 @@ def SendFrame():
             frame = cv2.resize(frame, (640, 480))
             frame = np.array(frame, dtype = np.uint8).reshape(1, lnF)
             jpg_as_text = bytearray(frame)
+            jpg_as_text = zlib.compress(jpg_as_text, 9)
             if quit == False:
-                databytes ="ACTIVE" + IP +  databytes
+                databytes = b"ACTIVE" + IP.encode() +  jpg_as_text
             else:
-                databytes ="INTIVE" + IP + databytes
-            databytes = zlib.compress(jpg_as_text, 9)
+                databytes = b"INTIVE" + IP.encode() + jpg_as_text
+                print('Connection Terminated Mofo !!!')
+
             length = struct.pack('!I', len(databytes))
             bytesToBeSend = b''
             clientVideoSocket.sendall(length)
@@ -92,75 +95,80 @@ def RecieveFrame():
             lengthbuf = recvallVideo(4)
             length, = struct.unpack('!I', lengthbuf)
             databytes = recvallVideo(length)
-            img = zlib.decompress(databytes)
-            STATUS = img[:6]
-            ipUser = img[6:len(IP)+6]
-            img = img[len(IP)+6:]
+            databytes1 = databytes
+            STATUS = databytes[:6].decode()
+            if STATUS == "ACTIVE" or STATUS == "INTIVE":
+                ipUser = databytes[6:len(IP)+6].decode()
+                databytes = databytes[(len(STATUS)+len(ipUser)):]
+                img = zlib.decompress(databytes)
+                # img = img[len(IP)+6:]
 
-            if len(databytes) == length:
-                print("Recieving Media..")
-                print("Image Frame Size:- {}".format(len(img)))
-                img = np.array(list(img))
-                img = np.array(img, dtype = np.uint8).reshape(480, 640, 3)
-                if ipUser not in USERS:
-                    USERS[ipUser] = img
-                else:
-                    if STATUS == "ACTIVE":
+                if len(databytes1) == length:
+                    print("Recieving Media..")
+                    print("Image Frame Size:- {}".format(len(img)))
+                    img = np.array(list(img))
+                    img = np.array(img, dtype = np.uint8).reshape(480, 640, 3)
+                    if ipUser not in USERS:
                         USERS[ipUser] = img
                     else:
-                        del USERS[ipUser]
+                        if STATUS == "ACTIVE":
+                            USERS[ipUser] = img
+                        else:
+                            del USERS[ipUser]
 
-                if len(USERS) == 1:
-                    background = cv2.resize(USERS[ipUser], (1080, 720))
-                    overlay = wvs.read()
-                    overlay = cv2.resize(overlay, (200, 150))
-                    s_img = overlay
-                    finalImage = background
-                    x_offset=880
-                    y_offset=570
-                    finalImage[y_offset:y_offset+s_img.shape[0], x_offset:x_offset+s_img.shape[1]] = s_img
+                    if len(USERS) == 1:
+                        background = cv2.resize(USERS[ipUser], (640, 480))
+                        overlay = wvs.read()
+                        overlay = cv2.resize(overlay, (200, 150))
+                        s_img = overlay
+                        finalImage = background
+                        x_offset=440
+                        y_offset=330
+                        finalImage[y_offset:y_offset+s_img.shape[0], x_offset:x_offset+s_img.shape[1]] = s_img
 
-                elif len(USERS) == 2:
-                    frames = []
-                    for ip in USERS:
-                        frames.append(USERS[ip])
-                    l_img1 = cv2.resize(frames[0], (640, 480))
-                    l_img2 = cv2.resize(frames[1], (640, 480))
-                    overlay = wvs.read()
-                    overlay = cv2.resize(overlay, (200, 150))
-                    s_img = overlay
-                    l_img = np.hstack((l_img1, l_img2))
-                    finalImage = cv2.resize(l_img, (1280, 720))
-                    x_offset = 1080
-                    y_offset = 570
-                    finalImage[y_offset:y_offset+s_img.shape[0], x_offset:x_offset+s_img.shape[1]] = s_img
+                    elif len(USERS) == 2:
+                        frames = []
+                        for ip in USERS:
+                            frames.append(USERS[ip])
+                        l_img1 = cv2.resize(frames[0], (640, 480))
+                        l_img2 = cv2.resize(frames[1], (640, 480))
+                        overlay = wvs.read()
+                        overlay = cv2.resize(overlay, (200, 150))
+                        s_img = overlay
+                        l_img = np.hstack((l_img1, l_img2))
+                        finalImage = cv2.resize(l_img, (1280, 720))
+                        x_offset = 1080
+                        y_offset = 570
+                        finalImage[y_offset:y_offset+s_img.shape[0], x_offset:x_offset+s_img.shape[1]] = s_img
 
-                elif len(USERS) == 3:
-                    frames = []
-                    for ip in USERS:
-                        frames.append(USERS[ip])
-                    l_img1 = cv2.resize(frames[0], (640, 480))
-                    l_img2 = cv2.resize(frames[1], (640, 480))
-                    l_img3 = cv2.resize(frames[2], (640, 480))
-                    overlay = wvs.read()
-                    overlay = cv2.resize(overlay, (640, 480))
-                    s_img = overlay
-                    l_img4 = np.hstack((l_img1, l_img2))
-                    l_img5 = np.hstack((l_img3, s_img))
-                    finalImage = np.vstack((l_img4, l_img5))
-                    finalImage = cv2.resize(l_img, (1080, 720))
-                    x_offset = 880
-                    y_offset = 570
-                    finalImage[y_offset:y_offset+s_img.shape[0], x_offset:x_offset+s_img.shape[1]] = s_img
+                    elif len(USERS) == 3:
+                        frames = []
+                        for ip in USERS:
+                            frames.append(USERS[ip])
+                        l_img1 = cv2.resize(frames[0], (640, 480))
+                        l_img2 = cv2.resize(frames[1], (640, 480))
+                        l_img3 = cv2.resize(frames[2], (640, 480))
+                        overlay = wvs.read()
+                        overlay = cv2.resize(overlay, (640, 480))
+                        s_img = overlay
+                        l_img4 = np.hstack((l_img1, l_img2))
+                        l_img5 = np.hstack((l_img3, s_img))
+                        finalImage = np.vstack((l_img4, l_img5))
+                        finalImage = cv2.resize(l_img, (1080, 720))
+                        x_offset = 880
+                        y_offset = 570
+                        finalImage[y_offset:y_offset+s_img.shape[0], x_offset:x_offset+s_img.shape[1]] = s_img
 
 
-                cv2.imshow("Stream", finalImage)
-                if cv2.waitKey(1) == 27:
-                    quit = True
-                    cv2.destroyAllWindows()
-                    break
+                    cv2.imshow("Stream", finalImage)
+                    if cv2.waitKey(1) == 27:
+                        quit = True
+                        cv2.destroyAllWindows()
+                        break
+                else:
+                    print("Data CORRUPTED")
             else:
-                print("Data CORRUPTED")
+                continue
         except:
             continue
 
@@ -176,7 +184,7 @@ def recvallVideo(size):
     return databytes
 
 def get_ip_address():
-    s = S.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    s = S.socket(S.AF_INET, S.SOCK_DGRAM)
     s.connect(("8.8.8.8", 80))
     ip =  s.getsockname()[0]
     return ip
@@ -188,8 +196,8 @@ wvs = WebcamVideoStream(0).start()
 clientAudioSocket = socket(family=AF_INET, type=SOCK_STREAM)
 clientAudioSocket.connect((HOST, PORT_AUDIO))
 
-audio=pyaudio.PyAudio()
-stream=audio.open(format=FORMAT,channels=CHANNELS, rate=RATE, input=True, output = True,frames_per_buffer=CHUNK)
+# audio=pyaudio.PyAudio()
+# stream=audio.open(format=FORMAT,channels=CHANNELS, rate=RATE, input=True, output = True,frames_per_buffer=CHUNK)
 
 initiation = clientVideoSocket.recv(5).decode()
 
@@ -198,6 +206,6 @@ quit = False
 
 if initiation == "start":
     SendFrameThread = Thread(target=SendFrame).start()
-    SendAudioThread = Thread(target=SendAudio).start()
+    # SendAudioThread = Thread(target=SendAudio).start()
     RecieveFrameThread = Thread(target=RecieveFrame).start()
-    RecieveAudioThread = Thread(target=RecieveAudio).start()
+    # RecieveAudioThread = Thread(target=RecieveAudio).start()
