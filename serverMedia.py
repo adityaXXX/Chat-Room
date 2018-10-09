@@ -4,31 +4,41 @@ import struct
 
 # HOST = input("Enter Host IP\n")
 HOST = '192.168.157.206'
-PORT_VIDEO = 3000
-PORT_AUDIO = 4000
+PORT_AUDIO = 3000
+PORT1 = 4000
+PORT2 = 5000
+PORT3 = 6000
+PORT4 = 7000
+PORT_UNIV = 8000
 lnF = 640*480*3
 CHUNK = 1024
 BufferSize = 4096
+quitUsers = {}
 addressesAudio = {}
 addresses = {}
-threads = {}
+ports = {'3000':True,'8000':True,'4000':False,'5000':False,'6000':False,'7000':False}
 
-def ConnectionsVideo():
+def ConnectionsUniv():
     while True:
-        clientVideo, addr = serverVideo.accept()
+        client, addr = serverUniv.accept()
+        client1,addr1 = server1.accept()
+        client2,addr2 = server2.accept()
+        client3,addr3 = server3.accept()
+        client4,addr4 = server4.accept()
+        addresses[client] = addr
         print("{} is connected!!".format(addr))
-        addresses[clientVideo] = addr
-        quitUsers[addresses[clientVideo][0]] = False
-        if len(addresses) > 1:
-            for sockets in list(addresses):
-                if sockets not in threads:
-                    threads[sockets] = True
-                    sockets.send(("start").encode())
-                    Thread(target=ClientConnectionVideo, args=(sockets, )).start()
-
-        else:
-            continue
-
+        for port in ports:
+            if ports[port] == False:
+                client.sendall(port.encode())
+                ports[port] = True
+                if port == '4000':
+                    Thread(target=ClientConnectionVideo, args=(port, client, client1,client2,client3,client4, )).start()
+                if port == '5000':
+                    Thread(target=ClientConnectionVideo, args=(port, client, client2,client1,client3,client4, )).start()
+                if port == '6000':
+                    Thread(target=ClientConnectionVideo, args=(port, client, client3,client1,client2,client4, )).start()
+                if port == '7000':
+                    Thread(target=ClientConnectionVideo, args=(port, client, client4,client1,client2,client4, )).start()
 
 def ConnectionsSound():
     while True:
@@ -38,19 +48,19 @@ def ConnectionsSound():
         Thread(target=ClientConnectionSound, args=(clientAudio, )).start()
 
 
-def ClientConnectionVideo(clientVideo):
+def ClientConnectionVideo(port, client, client1,client2,client3,client4):
     while True:
-        lengthbuf = recvall(clientVideo, 4)
-        length, = struct.unpack('!I', lengthbuf)
-        STATUS  = recvall(clientVideo , 6)
-        STATUS = STATUS.decode()
-        recvall(clientVideo, length-6)
-        if STATUS == "INTIVE":
-            quitUsers[addresses[clientVideo][0]] = True
-            del addresses[clientVideo]
-            del threads[clientVideo]
-            print(len(addresses))
-            break
+        if len(addresses)>1:
+            lengthbuf = recvall(client1,client2,client3,client4, 4)
+            length, = struct.unpack('!I', lengthbuf)
+            STATUS  = recvall(client1,client2,client3,client4 , 6)
+            STATUS = STATUS.decode()
+            recvall(client1,client2,client3,client4, length-6)
+            if STATUS == "INTIVE":
+                del addresses[client]
+                quitUsers[addresses[client][0]] = True
+                ports[port] = False
+                break
 
 
 def ClientConnectionSound(clientAudio):
@@ -59,55 +69,79 @@ def ClientConnectionSound(clientAudio):
             data = clientAudio.recv(BufferSize)
             broadcastSound(clientAudio, data)
         else:
-            quitUsers[addresses[clientVideo][0]] = True
+            quitUsers[addressesAudio[clientAudio]] = True
+            del addressesAudio[clientAudio]
             break
 
 
-def recvall(clientVideo, BufferSize):
+def recvall(client1,client2,client3,client4,BufferSize):
         databytes = b''
         i = 0
         while i != BufferSize:
             to_read = BufferSize - i
             if to_read > (1000 * CHUNK):
-                databytes = clientVideo.recv(1000 * CHUNK)
+                databytes = client1.recv(1000 * CHUNK)
                 i += len(databytes)
-                broadcastVideo(clientVideo, databytes)
+                broadcastVideo(client2,client3,client4, databytes)
             else:
                 if BufferSize == 4 or BufferSize == 6:
-                    databytes += clientVideo.recv(to_read)
+                    databytes += client1.recv(to_read)
                 else:
-                    databytes = clientVideo.recv(to_read)
+                    databytes = client1.recv(to_read)
                 i += len(databytes)
                 if BufferSize != 4 and BufferSize != 6:
-                    broadcastVideo(clientVideo, databytes)
+                    broadcastVideo(client2,client3,client4, databytes)
         print("YES!!!!!!!!!" if i == BufferSize else "NO!!!!!!!!!!!!")
         if BufferSize == 4 or BufferSize == 6:
-            broadcastVideo(clientVideo, databytes)
+            broadcastVideo(client2,client3,client4, databytes)
             return databytes
 
-def broadcastVideo(clientSocket, data_to_be_sent):
-    for clientVideo in list(addresses):
-        if clientVideo != clientSocket:
-            clientVideo.sendall(data_to_be_sent)
+def broadcastVideo(client2,client3,client4, data_to_be_sent):
+        client2.sendall(data_to_be_sent)
+        client3.sendall(data_to_be_sent)
+        client4.sendall(data_to_be_sent)
 
 def broadcastSound(clientSocket, data_to_be_sent):
-    for clientAudio in list(addressesAudio):
+    for clientAudio in addressesAudio:
         if clientAudio != clientSocket:
             clientAudio.sendall(data_to_be_sent)
 
-serverVideo = socket(family=AF_INET, type=SOCK_STREAM)
-try:
-    serverVideo.bind((HOST, PORT_VIDEO))
-except OSError:
-    print("Server Busy")
 
 serverAudio = socket(family=AF_INET, type=SOCK_STREAM)
+server1 = socket(family=AF_INET, type=SOCK_STREAM)
+server2 = socket(family=AF_INET, type=SOCK_STREAM)
+server3 = socket(family=AF_INET, type=SOCK_STREAM)
+server4 = socket(family=AF_INET, type=SOCK_STREAM)
+serverUniv = socket(family=AF_INET, type=SOCK_STREAM)
 try:
     serverAudio.bind((HOST, PORT_AUDIO))
 except OSError:
-    print("Server Busy")
+    print("Server Audio is Busy")
 
-quitUsers = {}
+try:
+    serverUniv.bind((HOST, PORT_UNIV))
+except OSError:
+    print("Server Univ Busy")
+
+try:
+    server1.bind((HOST, PORT1))
+except OSError:
+    print("Server1 Busy")
+
+try:
+    server2.bind((HOST, PORT2))
+except OSError:
+    print("Server2 Busy")
+
+try:
+    server3.bind((HOST, PORT3))
+except OSError:
+    print("Server3 Busy")
+
+try:
+    server4.bind((HOST, PORT4))
+except OSError:
+    print("Server4 Busy")
 
 serverAudio.listen(4)
 print("Waiting for connection..")
@@ -115,9 +149,13 @@ AcceptThreadAudio = Thread(target=ConnectionsSound)
 AcceptThreadAudio.start()
 
 
-serverVideo.listen(4)
+serverUniv.listen(4)
+server1.listen(4)
+server2.listen(4)
+server3.listen(4)
+server4.listen(4)
 print("Waiting for connection..")
-AcceptThreadVideo = Thread(target=ConnectionsVideo)
-AcceptThreadVideo.start()
-AcceptThreadVideo.join()
-serverVideo.close()
+AcceptThreadUniv = Thread(target=ConnectionsUniv)
+AcceptThreadUniv.start()
+AcceptThreadUniv.join()
+serverUniv.close()

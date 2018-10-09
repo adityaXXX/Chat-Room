@@ -11,8 +11,12 @@ import struct
 
 # HOST = input("Enter Server IP\n")
 HOST = '192.168.157.206'
-PORT_VIDEO = 3000
-PORT_AUDIO = 4000
+PORT_AUDIO = 3000
+PORT1 = 4000
+PORT2 = 5000
+PORT3 = 6000
+PORT4 = 7000
+PORT_UNIV = 8000
 
 BufferSize = 4096
 CHUNK=1024
@@ -21,6 +25,7 @@ FORMAT=pyaudio.paInt16
 CHANNELS=2
 RATE=44100
 
+ports = {'3000':True,'8000':True,'4000':False,'5000':False,'6000':False,'7000':False}
 USERS = {}
 
 def SendAudio():
@@ -72,15 +77,15 @@ def SendFrame():
 
             length = struct.pack('!I', len(databytes))
             bytesToBeSend = b''
-            clientVideoSocket.sendall(length)
+            clientVideoSocket1.sendall(length)
             while len(databytes) > 0:
                 if (5000 * CHUNK) <= len(databytes):
                     bytesToBeSend = databytes[:(5000 * CHUNK)]
                     databytes = databytes[(5000 * CHUNK):]
-                    clientVideoSocket.sendall(bytesToBeSend)
+                    clientVideoSocket1.sendall(bytesToBeSend)
                 else:
                     bytesToBeSend = databytes
-                    clientVideoSocket.sendall(bytesToBeSend)
+                    clientVideoSocket1.sendall(bytesToBeSend)
                     databytes = b''
             print("##### Data Sent!! #####")
             if quit == True:
@@ -89,12 +94,12 @@ def SendFrame():
             continue
 
 
-def RecieveFrame():
+def RecieveFrame(clientVideoSocket):
     while True:
         try:
-            lengthbuf = recvallVideo(4)
+            lengthbuf = recvallVideo(clientVideoSocket, 4)
             length, = struct.unpack('!I', lengthbuf)
-            databytes = recvallVideo(length)
+            databytes = recvallVideo(clientVideoSocket, length)
             databytes1 = databytes
             STATUS = databytes[:6].decode()
             if STATUS == "ACTIVE" or STATUS == "INTIVE":
@@ -173,7 +178,7 @@ def RecieveFrame():
             continue
 
 
-def recvallVideo(size):
+def recvallVideo(clientVideoSocket, size):
     databytes = b''
     while len(databytes) != size:
         to_read = size - len(databytes)
@@ -189,23 +194,51 @@ def get_ip_address():
     ip =  s.getsockname()[0]
     return ip
 
-clientVideoSocket = socket(family=AF_INET, type=SOCK_STREAM)
-clientVideoSocket.connect((HOST, PORT_VIDEO))
-wvs = WebcamVideoStream(0).start()
+clientVideoSocketUniv = socket(family=AF_INET, type=SOCK_STREAM)
+clientVideoSocketUniv.connect((HOST, PORT_UNIV))
 
 clientAudioSocket = socket(family=AF_INET, type=SOCK_STREAM)
 clientAudioSocket.connect((HOST, PORT_AUDIO))
 
-# audio=pyaudio.PyAudio()
-# stream=audio.open(format=FORMAT,channels=CHANNELS, rate=RATE, input=True, output = True,frames_per_buffer=CHUNK)
+wvs = WebcamVideoStream(0).start()
+PORTNUMBER = clientVideoSocketUniv.recv(4).decode()
 
-initiation = clientVideoSocket.recv(5).decode()
+clientVideoSocket1 = socket(family=AF_INET, type=SOCK_STREAM)
+clientVideoSocket1.connect((HOST, PORTNUMBER))
+ports[PORTNUMBER] = True
+SendFrameThread = Thread(target=SendFrame).start()
+
+for portnos in ports:
+    if ports[portnos] == False:
+        clientVideoSocket2 = socket(family=AF_INET, type=SOCK_STREAM)
+        clientVideoSocket2.connect((HOST, portnos))
+        ports[portnos] = True
+        RecieveFrameThread = Thread(target=RecieveFrame, args=(clientVideoSocket2, )).start()
+        break
+
+for portnos in ports:
+    if ports[portnos] == False:
+        clientVideoSocket3 = socket(family=AF_INET, type=SOCK_STREAM)
+        clientVideoSocket3.connect((HOST, portnos))
+        ports[portnos] = True
+        RecieveFrameThread = Thread(target=RecieveFrame, args=(clientVideoSocket3, )).start()
+        break
+
+for portnos in ports:
+    if ports[portnos] == False:
+        clientVideoSocket4 = socket(family=AF_INET, type=SOCK_STREAM)
+        clientVideoSocket4.connect((HOST, portnos))
+        ports[portnos] = True
+        RecieveFrameThread = Thread(target=RecieveFrame, args=(clientVideoSocket4, )).start()
+        break
+
+
+audio=pyaudio.PyAudio()
+stream=audio.open(format=FORMAT,channels=CHANNELS, rate=RATE, input=True, output = True,frames_per_buffer=CHUNK)
 
 IP = get_ip_address()
 quit = False
 
-if initiation == "start":
-    SendFrameThread = Thread(target=SendFrame).start()
-    # SendAudioThread = Thread(target=SendAudio).start()
-    RecieveFrameThread = Thread(target=RecieveFrame).start()
-    # RecieveAudioThread = Thread(target=RecieveAudio).start()
+SendAudioThread = Thread(target=SendAudio).start()
+RecieveAudioThread = Thread(target=RecieveAudio).start()
+SendAudioThread.join()
