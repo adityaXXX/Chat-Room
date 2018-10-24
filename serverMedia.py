@@ -21,16 +21,19 @@ ports = {'3000':True,'8000':True,'4000':False,'5000':False,'6000':False,'7000':F
 def ConnectionsUniv():
     while True:
         client, addr = serverUniv.accept()
-        client1,addr1 = server1.accept()
-        client2,addr2 = server2.accept()
-        client3,addr3 = server3.accept()
-        client4,addr4 = server4.accept()
+
         addresses[client] = addr
         print("{} is connected!!".format(addr))
         for port in ports:
             if ports[port] == False:
                 client.sendall(port.encode())
                 ports[port] = True
+
+                client1,addr1 = server1.accept()
+                client2,addr2 = server2.accept()
+                client3,addr3 = server3.accept()
+                client4,addr4 = server4.accept()
+
                 if port == '4000':
                     Thread(target=ClientConnectionVideo, args=(port, client, client1,client2,client3,client4, )).start()
                 if port == '5000':
@@ -39,6 +42,7 @@ def ConnectionsUniv():
                     Thread(target=ClientConnectionVideo, args=(port, client, client3,client1,client2,client4, )).start()
                 if port == '7000':
                     Thread(target=ClientConnectionVideo, args=(port, client, client4,client1,client2,client4, )).start()
+                break
 
 def ConnectionsSound():
     while True:
@@ -69,7 +73,7 @@ def ClientConnectionSound(clientAudio):
             data = clientAudio.recv(BufferSize)
             broadcastSound(clientAudio, data)
         else:
-            quitUsers[addressesAudio[clientAudio]] = True
+            quitUsers[addressesAudio[clientAudio]] = False
             del addressesAudio[clientAudio]
             break
 

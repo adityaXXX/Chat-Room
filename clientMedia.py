@@ -27,6 +27,7 @@ RATE=44100
 
 ports = {'3000':True,'8000':True,'4000':False,'5000':False,'6000':False,'7000':False}
 USERS = {}
+imageStream = None
 
 def SendAudio():
     while True:
@@ -164,18 +165,34 @@ def RecieveFrame(clientVideoSocket):
                         y_offset = 570
                         finalImage[y_offset:y_offset+s_img.shape[0], x_offset:x_offset+s_img.shape[1]] = s_img
 
+                    elif len(USERS) == 0:
+                        imageStream = None
+                    
+                    imageStream = finalImage
 
-                    cv2.imshow("Stream", finalImage)
-                    if cv2.waitKey(1) == 27:
-                        quit = True
-                        cv2.destroyAllWindows()
-                        break
                 else:
                     print("Data CORRUPTED")
             else:
                 continue
         except:
             continue
+
+def display():
+    while True:
+        if imageStream == None:
+            userFrame = wvs.read()
+            userFrame = cv2.resize(userFrame, (1080, 720))
+            cv2.imshow("Stream", userFrame)
+            if cv2.waitKey(1) == 27:
+                quit = True
+                cv2.destroyAllWindows()
+                break
+        else:
+            cv2.imshow("Stream", imageStream)
+            if cv2.waitKey(1) == 27:
+                quit = True
+                cv2.destroyAllWindows()
+                break
 
 
 def recvallVideo(clientVideoSocket, size):
@@ -201,6 +218,7 @@ clientAudioSocket = socket(family=AF_INET, type=SOCK_STREAM)
 clientAudioSocket.connect((HOST, PORT_AUDIO))
 
 wvs = WebcamVideoStream(0).start()
+
 PORTNUMBER = clientVideoSocketUniv.recv(4).decode()
 
 clientVideoSocket1 = socket(family=AF_INET, type=SOCK_STREAM)
@@ -241,4 +259,5 @@ quit = False
 
 SendAudioThread = Thread(target=SendAudio).start()
 RecieveAudioThread = Thread(target=RecieveAudio).start()
+DisplayThread = Thread(target=display).start()
 SendAudioThread.join()
