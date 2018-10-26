@@ -80,11 +80,15 @@ def ConnectionsSound():
 def ClientConnectionVideo(port, client, client1):
     while True:
         if len(addresses)>1:
+            databytes = b''
             lengthbuf = recvall(port, client1, 4)
+            databytes += lengthbuf
             length, = struct.unpack('!I', lengthbuf)
             STATUS  = recvall(port, client1, 6)
+            databytes += STATUS
             STATUS = STATUS.decode()
-            recvall(port, client1, length-6)
+            databytes += recvall(port, client1, length-6)
+            broadcastVideo(port, databytes)
             if STATUS == "INTIVE":
                 del addresses[client]
                 quitUsers[addresses[client][0]] = True
@@ -109,26 +113,24 @@ def recvall(port, client1, BufferSize):
     while i != BufferSize:
         to_read = BufferSize - i
         if to_read > (1000 * CHUNK):
-            databytes = client1.recv(1000 * CHUNK)
-            i += len(databytes)
-            broadcastVideo(port, databytes)
+            databytes += client1.recv(1000 * CHUNK)
+            i = len(databytes)
         else:
-            if BufferSize == 4 or BufferSize == 6:
-                databytes += client1.recv(to_read)
-            else:
-                databytes = client1.recv(to_read)
-            i += len(databytes)
-            if BufferSize != 4 and BufferSize != 6:
-                broadcastVideo(port, databytes)
-    # print("YES!!!!!!!!!" if i == BufferSize else "NO!!!!!!!!!!!!")
-    if BufferSize == 4 or BufferSize == 6:
-        broadcastVideo(port, databytes)
-        return databytes
+            databytes += client1.recv(to_read)
+            i = len(databytes)
+    return databytes
+
+def broadcastVideoFrame(client, data_to_be_sent):
+    client.sendall(data_to_be_sent)
 
 def broadcastVideo(port, data_to_be_sent):
+    threads = []
     for client in USERS[port]:
-        # print("the port: ",port , " has sent data coressponding to client: ",client)
-        client.sendall(data_to_be_sent)
+        frameThread = Thread(target=broadcastVideoFrame, args=(client, data_to_be_sent, ))
+        threads.append(frameThread)
+        frameThread.start()
+    for thread in threads:
+        thread.join()
 
 def broadcastSound(clientSocket, data_to_be_sent):
     for clientAudio in addressesAudio:
