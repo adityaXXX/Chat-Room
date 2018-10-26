@@ -4,7 +4,7 @@ import struct
 
 # HOST = input("Enter Host IP\n")
 HOST = '192.168.157.206'
-PORT_AUDIO = 3000
+PORT_AUDIO = 10000
 PORT1 = 4000
 PORT2 = 5000
 PORT3 = 6000
@@ -16,32 +16,57 @@ BufferSize = 4096
 quitUsers = {}
 addressesAudio = {}
 addresses = {}
-ports = {'3000':True,'8000':True,'4000':False,'5000':False,'6000':False,'7000':False}
+USERS = {'4000':[],'5000':[],'6000':[],'7000':[]}
+ports = {'10000':True,'8000':True,'4000':False,'5000':False,'6000':False,'7000':False}
+
+def accept(port, server1,server2,server3,server4):
+    client1,addr1 = server1.accept()
+    client2,addr2 = server2.accept()
+    client3,addr3 = server3.accept()
+    client4,addr4 = server4.accept()
+    i = 0
+    if port == '4000':
+        PORTS = ['4000', '5000', '6000', '7000']
+        print ("1st User detected")
+    elif port == '5000':
+        PORTS = ['5000', '4000', '6000', '7000']
+        print ("2nd User detected")
+    elif port == '6000':
+        PORTS = ['6000', '4000', '5000', '7000']
+        print ("3rd User detected")
+    elif port == '7000':
+        PORTS = ['7000', '4000', '5000', '6000']
+        print ("4th User detected")
+    clients = [client1, client2, client3, client4]
+    for PORT in PORTS:
+        if PORT != port:
+            USERS[PORT].append(clients[i])
+        i += 1
+    return client1
 
 def ConnectionsUniv():
     while True:
         client, addr = serverUniv.accept()
-
         addresses[client] = addr
+        quitUsers[addr[0]] = False
         print("{} is connected!!".format(addr))
         for port in ports:
             if ports[port] == False:
                 client.sendall(port.encode())
                 ports[port] = True
 
-                client1,addr1 = server1.accept()
-                client2,addr2 = server2.accept()
-                client3,addr3 = server3.accept()
-                client4,addr4 = server4.accept()
-
                 if port == '4000':
-                    Thread(target=ClientConnectionVideo, args=(port, client, client1,client2,client3,client4, )).start()
+                    client1 = accept(port, server1,server2,server3,server4)
+                    Thread(target=ClientConnectionVideo, args=(port, client, client1, )).start()
                 if port == '5000':
-                    Thread(target=ClientConnectionVideo, args=(port, client, client2,client1,client3,client4, )).start()
+                    client1 = accept(port, server2,server1,server3,server4)
+                    Thread(target=ClientConnectionVideo, args=(port, client, client1, )).start()
                 if port == '6000':
-                    Thread(target=ClientConnectionVideo, args=(port, client, client3,client1,client2,client4, )).start()
+                    client1 = accept(port, server3,server1,server2,server4)
+                    Thread(target=ClientConnectionVideo, args=(port, client, client1, )).start()
                 if port == '7000':
-                    Thread(target=ClientConnectionVideo, args=(port, client, client4,client1,client2,client4, )).start()
+                    client1 = accept(port, server4,server1,server2,server3)
+                    Thread(target=ClientConnectionVideo, args=(port, client, client1, )).start()
                 break
 
 def ConnectionsSound():
@@ -52,14 +77,14 @@ def ConnectionsSound():
         Thread(target=ClientConnectionSound, args=(clientAudio, )).start()
 
 
-def ClientConnectionVideo(port, client, client1,client2,client3,client4):
+def ClientConnectionVideo(port, client, client1):
     while True:
         if len(addresses)>1:
-            lengthbuf = recvall(client1,client2,client3,client4, 4)
+            lengthbuf = recvall(port, client1, 4)
             length, = struct.unpack('!I', lengthbuf)
-            STATUS  = recvall(client1,client2,client3,client4 , 6)
+            STATUS  = recvall(port, client1, 6)
             STATUS = STATUS.decode()
-            recvall(client1,client2,client3,client4, length-6)
+            recvall(port, client1, length-6)
             if STATUS == "INTIVE":
                 del addresses[client]
                 quitUsers[addresses[client][0]] = True
@@ -78,32 +103,32 @@ def ClientConnectionSound(clientAudio):
             break
 
 
-def recvall(client1,client2,client3,client4,BufferSize):
-        databytes = b''
-        i = 0
-        while i != BufferSize:
-            to_read = BufferSize - i
-            if to_read > (1000 * CHUNK):
-                databytes = client1.recv(1000 * CHUNK)
-                i += len(databytes)
-                broadcastVideo(client2,client3,client4, databytes)
+def recvall(port, client1, BufferSize):
+    databytes = b''
+    i = 0
+    while i != BufferSize:
+        to_read = BufferSize - i
+        if to_read > (1000 * CHUNK):
+            databytes = client1.recv(1000 * CHUNK)
+            i += len(databytes)
+            broadcastVideo(port, databytes)
+        else:
+            if BufferSize == 4 or BufferSize == 6:
+                databytes += client1.recv(to_read)
             else:
-                if BufferSize == 4 or BufferSize == 6:
-                    databytes += client1.recv(to_read)
-                else:
-                    databytes = client1.recv(to_read)
-                i += len(databytes)
-                if BufferSize != 4 and BufferSize != 6:
-                    broadcastVideo(client2,client3,client4, databytes)
-        print("YES!!!!!!!!!" if i == BufferSize else "NO!!!!!!!!!!!!")
-        if BufferSize == 4 or BufferSize == 6:
-            broadcastVideo(client2,client3,client4, databytes)
-            return databytes
+                databytes = client1.recv(to_read)
+            i += len(databytes)
+            if BufferSize != 4 and BufferSize != 6:
+                broadcastVideo(port, databytes)
+    # print("YES!!!!!!!!!" if i == BufferSize else "NO!!!!!!!!!!!!")
+    if BufferSize == 4 or BufferSize == 6:
+        broadcastVideo(port, databytes)
+        return databytes
 
-def broadcastVideo(client2,client3,client4, data_to_be_sent):
-        client2.sendall(data_to_be_sent)
-        client3.sendall(data_to_be_sent)
-        client4.sendall(data_to_be_sent)
+def broadcastVideo(port, data_to_be_sent):
+    for client in USERS[port]:
+        # print("the port: ",port , " has sent data coressponding to client: ",client)
+        client.sendall(data_to_be_sent)
 
 def broadcastSound(clientSocket, data_to_be_sent):
     for clientAudio in addressesAudio:
@@ -148,7 +173,6 @@ except OSError:
     print("Server4 Busy")
 
 serverAudio.listen(4)
-print("Waiting for connection..")
 AcceptThreadAudio = Thread(target=ConnectionsSound)
 AcceptThreadAudio.start()
 
