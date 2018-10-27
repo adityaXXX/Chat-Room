@@ -42,7 +42,7 @@ def accept(port, server1,server2,server3,server4):
         if PORT != port:
             USERS[PORT].append(clients[i])
         i += 1
-    return tuple(clients), tuple(PORTS)
+    return tuple(clients), PORTS
 
 def ConnectionsUniv():
     while True:
@@ -50,23 +50,23 @@ def ConnectionsUniv():
         addresses[client] = addr
         quitUsers[addr[0]] = False
         print("{} is connected!!".format(addr))
-        for port in ports:
+        for port in sorted(ports.keys()):
             if ports[port] == False:
                 client.sendall(port.encode())
                 ports[port] = True
 
                 if port == '4000':
                     clients, PORTS = accept(port, server1,server2,server3,server4)
-                    Thread(target=ClientConnectionVideo, args=(port, client, clients, PORTS, )).start()
+                    Thread(target=ClientConnectionVideo, args=(port, client, clients, PORTS,)).start()
                 if port == '5000':
                     clients, PORTS = accept(port, server2,server1,server3,server4)
-                    Thread(target=ClientConnectionVideo, args=(port, client, clients, PORTS, )).start()
+                    Thread(target=ClientConnectionVideo, args=(port, client, clients, PORTS,)).start()
                 if port == '6000':
                     clients, PORTS = accept(port, server3,server1,server2,server4)
-                    Thread(target=ClientConnectionVideo, args=(port, client, clients, PORTS, )).start()
+                    Thread(target=ClientConnectionVideo, args=(port, client, clients, PORTS,)).start()
                 if port == '7000':
                     clients, PORTS = accept(port, server4,server1,server2,server3)
-                    Thread(target=ClientConnectionVideo, args=(port, client, clients, PORTS, )).start()
+                    Thread(target=ClientConnectionVideo, args=(port, client, clients, PORTS,)).start()
                 break
 
 def ConnectionsSound():
@@ -78,45 +78,50 @@ def ConnectionsSound():
 
 
 def ClientConnectionVideo(port, client, clients, PORTS):
-    while True:
-        if len(addresses)>1:
-            databytes = b''
-            client1 = clients[0]
-            lengthbuf = recvall(port, client1, 4)
-            databytes += lengthbuf
-            length, = struct.unpack('!I', lengthbuf)
-            STATUS  = recvall(port, client1, 6)
-            databytes += STATUS
-            STATUS = STATUS.decode()
-            databytes += recvall(port, client1, length-6)
-            broadcastVideo(port, databytes)
-            if STATUS == "INTIVE":
-                i = 0
-                del addresses[client]
-                quitUsers[addresses[client][0]] = True
-                ports[port] = False
-                for PORT in PORTS:
-                    if PORT != port:
-                        clients[i].shutdown(1)
-                        clients[i].close()
-                        USERS[PORT].remove(clients[i])
-                    i += 1
-                client1.shutdown(1)
-                client1.close()
-                client.shutdown(1)
-                client.close()
-                break
-
+    try:
+        while True:
+            if len(addresses)>1:
+                databytes = b''
+                client1 = clients[0]
+                lengthbuf = recvall(port, client1, 4)
+                databytes += lengthbuf
+                length, = struct.unpack('!I', lengthbuf)
+                STATUS  = recvall(port, client1, 6)
+                databytes += STATUS
+                STATUS = STATUS.decode()
+                databytes += recvall(port, client1, length-6)
+                broadcastVideo(port, databytes)
+                if STATUS == "INTIVE":
+                    i = 0
+                    quitUsers[addresses[client][0]] = True
+                    del addresses[client]
+                    ports[port] = False
+                    for PORT in PORTS:
+                        if PORT != port:
+                            # clients[i].shutdown(1)
+                            # clients[i].close()
+                            USERS[PORT].remove(clients[i])
+                        i += 1
+                    # client1.shutdown(1)
+                    # client1.close()
+                    # client.shutdown(1)
+                    # client.close()
+                    break
+    except:
+        ports[port] = False
 
 def ClientConnectionSound(clientAudio):
-    while True:
-        if quitUsers[addressesAudio[clientAudio]] == False:
-            data = clientAudio.recv(BufferSize)
-            broadcastSound(clientAudio, data)
-        else:
-            quitUsers[addressesAudio[clientAudio]] = False
-            del addressesAudio[clientAudio]
-            break
+    try:
+        while True:
+            if quitUsers[addressesAudio[clientAudio]] == False:
+                data = clientAudio.recv(BufferSize)
+                broadcastSound(clientAudio, data)
+            else:
+                quitUsers[addressesAudio[clientAudio]] = False
+                del addressesAudio[clientAudio]
+                break
+    except:
+        pass
 
 
 def recvall(port, client1, BufferSize):
@@ -132,13 +137,19 @@ def recvall(port, client1, BufferSize):
             i = len(databytes)
     return databytes
 
-def broadcastVideoFrame(client, data_to_be_sent):
-    client.sendall(data_to_be_sent)
+def broadcastVideoFrame(client, data_to_be_sent, port):
+    try:
+        client.sendall(data_to_be_sent)
+    except:
+        # ports[port] = False
+        # USERS[port] = []
+        pass
+
 
 def broadcastVideo(port, data_to_be_sent):
     # threads = []
     for client in USERS[port]:
-        frameThread = Thread(target=broadcastVideoFrame, args=(client, data_to_be_sent, ))
+        frameThread = Thread(target=broadcastVideoFrame, args=(client, data_to_be_sent, port, ))
         frameThread.start()
         # threads.append(frameThread)
         frameThread.join()
@@ -146,9 +157,13 @@ def broadcastVideo(port, data_to_be_sent):
         # thread.join()
 
 def broadcastSound(clientSocket, data_to_be_sent):
-    for clientAudio in addressesAudio:
+    temp = addressesAudio.copy()
+    for clientAudio in temp:
         if clientAudio != clientSocket:
-            clientAudio.sendall(data_to_be_sent)
+            try:
+                clientAudio.sendall(data_to_be_sent)
+            except:
+                pass
 
 
 serverAudio = socket(family=AF_INET, type=SOCK_STREAM)
