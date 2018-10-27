@@ -1,7 +1,7 @@
 import cv2
 import socket as S
 from socket import socket, AF_INET, SOCK_STREAM
-from imutils.video import WebcamVideoStream
+from webcamVideoStream import WebcamVideoStream
 import pyaudio
 from array import array
 from threading import Thread
@@ -20,7 +20,7 @@ PORT_UNIV = 8000
 
 BufferSize = 4096
 CHUNK=1024
-lnF = 640*480*3
+lnF = 200*200*3
 FORMAT=pyaudio.paInt16
 CHANNELS=2
 RATE=44100
@@ -28,12 +28,12 @@ RATE=44100
 ports = {'10000':True,'8000':True,'4000':False,'5000':False,'6000':False,'7000':False}
 USERS = {}
 imageStream = np.array([])
-quit1=False
+Quit=False
 
 def SendAudio():
-    global quit1
+    global Quit
     while True:
-        if quit1 == False:
+        if Quit == False:
             data = stream.read(CHUNK)
             dataChunk = array('h', data)
             vol = max(dataChunk)
@@ -47,9 +47,9 @@ def SendAudio():
             break
 
 def RecieveAudio():
-    global quit1
+    global Quit
     while True:
-        if quit1 == False:
+        if Quit == False:
             data = recvallAudio(BufferSize)
             stream.write(data)
         else:
@@ -67,19 +67,19 @@ def recvallAudio(size):
 
 def SendFrame():
     IP = get_ip_address()
-    global quit1
+    global Quit
     while True:
 
             frame = wvs.read()
             cv2_im = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-            frame = cv2.resize(frame, (640, 480))
+            frame = cv2.resize(frame, (200, 200))
             frame = np.array(frame, dtype = np.uint8).reshape(1, lnF)
             jpg_as_text = bytearray(frame)
             jpg_as_text = zlib.compress(jpg_as_text, 9)
 
             lenip = struct.pack('!I',len(IP))
 
-            if quit1 == False:
+            if Quit == False:
                 databytes = b"ACTIVE" + lenip + IP.encode() + jpg_as_text
             else:
                 databytes = b"INTIVE" + lenip + IP.encode() + jpg_as_text
@@ -97,16 +97,16 @@ def SendFrame():
                     bytesToBeSend = databytes
                     clientVideoSocket1.sendall(bytesToBeSend)
                     databytes = b''
-            if quit1 == True:
+            if Quit == True:
                 break
 
 
 
 def RecieveFrame(clientVideoSocket):
     IP = get_ip_address()
-    global quit1
+    global Quit
     global imageStream
-    while quit1==False:
+    while Quit==False:
 
         lengthbuf = recvallVideo(clientVideoSocket, 4)
         print('Lengthbuf - ',lengthbuf)
@@ -128,7 +128,8 @@ def RecieveFrame(clientVideoSocket):
 #                 print("Recieving Media..")
 #                 print("Image Frame Size:- {}".format(len(img)))
                 img = np.array(list(img))
-                img = np.array(img, dtype = np.uint8).reshape(480, 640, 3)
+                img = np.array(img, dtype = np.uint8).reshape(200, 200, 3)
+                img = cv2.resize(img, (640, 480))
                 if ipUser not in USERS:
                     USERS[ipUser] = img
                 else:
@@ -147,7 +148,7 @@ def RecieveFrame(clientVideoSocket):
 
 
 def display():
-    global quit1
+    global Quit
     global USERS
     while True:
         US = USERS.copy()
@@ -191,24 +192,23 @@ def display():
             l_img4 = np.hstack((l_img1, l_img2))
             l_img5 = np.hstack((l_img3, s_img))
             finalImage = np.vstack((l_img4, l_img5))
-            finalImage = cv2.resize(l_img, (1080, 720))
-            x_offset = 880
-            y_offset = 570
-            finalImage[y_offset:y_offset+s_img.shape[0], x_offset:x_offset+s_img.shape[1]] = s_img
+            finalImage = cv2.resize(finalImage, (1080, 720))
+
 
         elif len(US) == 0:
             finalImage = wvs.read()
             finalImage = cv2.resize(finalImage, (1080, 720))
 
-        finalImage = cv2.flip(imageStream, 1)
-
-        cv2.imshow("Stream", finalImage)
-        if cv2.waitKey(1) == 27:
-            quit1 = True
-            cv2.destroyAllWindows()
-            wvs.stop()
-            break
-
+        # finalImage = cv2.flip(imageStream, 1)
+        try:
+            cv2.imshow("Stream", finalImage)
+            if cv2.waitKey(1) == 27:
+                Quit = True
+                cv2.destroyAllWindows()
+                wvs.stop()
+                break
+        except:
+            continue
 
 
 def recvallVideo(clientVideoSocket, size):
