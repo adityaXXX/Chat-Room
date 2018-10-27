@@ -10,7 +10,7 @@ import zlib
 import struct
 
 # HOST = input("Enter Server IP\n")
-HOST = '192.168.43.215'
+HOST = '172.16.84.73'
 PORT_AUDIO = 10000
 PORT1 = 4000
 PORT2 = 5000
@@ -33,7 +33,8 @@ Quit=False
 def SendAudio():
     global Quit
     while True:
-        if Quit == False:
+        q = Quit
+        if q == False:
             data = stream.read(CHUNK)
             dataChunk = array('h', data)
             vol = max(dataChunk)
@@ -44,12 +45,15 @@ def SendAudio():
                 #print("Silence..")
                 pass
         else:
+            clientAudioSocket.shutdown(1)
+            clientAudioSocket.close()
             break
 
 def RecieveAudio():
     global Quit
     while True:
-        if Quit == False:
+        q = Quit
+        if q == False:
             data = recvallAudio(BufferSize)
             stream.write(data)
         else:
@@ -69,7 +73,7 @@ def SendFrame():
     IP = get_ip_address()
     global Quit
     while True:
-
+            q = Quit
             frame = wvs.read()
             cv2_im = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
             frame = cv2.resize(frame, (200, 200))
@@ -79,7 +83,7 @@ def SendFrame():
 
             lenip = struct.pack('!I',len(IP))
 
-            if Quit == False:
+            if q == False:
                 databytes = b"ACTIVE" + lenip + IP.encode() + jpg_as_text
             else:
                 databytes = b"INTIVE" + lenip + IP.encode() + jpg_as_text
@@ -97,7 +101,9 @@ def SendFrame():
                     bytesToBeSend = databytes
                     clientVideoSocket1.sendall(bytesToBeSend)
                     databytes = b''
-            if Quit == True:
+            if q == True:
+                clientVideoSocket1.shutdown(1)
+                clientVideoSocket1.close()
                 break
 
 
@@ -105,9 +111,10 @@ def SendFrame():
 def RecieveFrame(clientVideoSocket):
     IP = get_ip_address()
     global Quit
+    q = Quit
     global imageStream
-    while Quit==False:
-
+    while True:
+        q = Quit
         lengthbuf = recvallVideo(clientVideoSocket, 4)
         print('Lengthbuf - ',lengthbuf)
         length, = struct.unpack('!I', lengthbuf)
@@ -137,14 +144,13 @@ def RecieveFrame(clientVideoSocket):
                         USERS[ipUser] = img
                     elif STATUS == "INTIVE":
                         del USERS[ipUser]
-
-
-
             else:
                 print("Data CORRUPTED")
-        else:
-            print('Status Error!:-    ',STATUS)
-            continue
+
+        if q == True:
+            clientVideoSocket.shutdown(1)
+            clientVideoSocket.close()
+            break
 
 
 def display():
@@ -203,7 +209,10 @@ def display():
         try:
             cv2.imshow("Stream", finalImage)
             if cv2.waitKey(1) == 27:
+                global Quit
                 Quit = True
+                clientVideoSocketUniv.shutdown(1)
+                clientVideoSocketUniv.close()
                 cv2.destroyAllWindows()
                 wvs.stop()
                 break
@@ -240,14 +249,14 @@ PORTNUMBER = clientVideoSocketUniv.recv(4).decode()
 clientVideoSocket1 = socket(family=AF_INET, type=SOCK_STREAM)
 clientVideoSocket1.connect((HOST, int(PORTNUMBER)))
 ports[PORTNUMBER] = True
-SendFrameThread = Thread(target=SendFrame).start()
+SendFrameThread = Thread(target=SendFrame,daemon=True).start()
 
 for portnos in sorted(ports.keys()):
     if ports[portnos] == False:
         clientVideoSocket2 = socket(family=AF_INET, type=SOCK_STREAM)
         clientVideoSocket2.connect((HOST, int(portnos)))
         ports[portnos] = True
-        RecieveFrameThread1 = Thread(target=RecieveFrame, args=(clientVideoSocket2, )).start()
+        RecieveFrameThread1 = Thread(target=RecieveFrame, args=(clientVideoSocket2, ), daemon=True).start()
         print(portnos,' - Connected !')
         break
 
@@ -256,7 +265,7 @@ for portnos in sorted(ports.keys()):
         clientVideoSocket3 = socket(family=AF_INET, type=SOCK_STREAM)
         clientVideoSocket3.connect((HOST, int(portnos)))
         ports[portnos] = True
-        RecieveFrameThread2 = Thread(target=RecieveFrame, args=(clientVideoSocket3, )).start()
+        RecieveFrameThread2 = Thread(target=RecieveFrame, args=(clientVideoSocket3, ), daemon=True).start()
         print(portnos,' - Connected !')
         break
 
@@ -265,7 +274,7 @@ for portnos in sorted(ports.keys()):
         clientVideoSocket4 = socket(family=AF_INET, type=SOCK_STREAM)
         clientVideoSocket4.connect((HOST, int(portnos)))
         ports[portnos] = True
-        RecieveFrameThread3 = Thread(target=RecieveFrame, args=(clientVideoSocket4, )).start()
+        RecieveFrameThread3 = Thread(target=RecieveFrame, args=(clientVideoSocket4, ), daemon=True).start()
         print(portnos,' - Connected !')
         break
 
@@ -276,10 +285,10 @@ stream=audio.open(format=FORMAT,channels=CHANNELS, rate=RATE, input=True, output
 IP = get_ip_address()
 
 
-SendAudioThread = Thread(target=SendAudio)
-RecieveAudioThread = Thread(target=RecieveAudio)
-DisplayThread = Thread(target=display)
-RecieveAudioThread.start()
+SendAudioThread = Thread(target=SendAudio, daemon=True)
+RecieveAudioThread = Thread(target=RecieveAudio, daemon=True)
+DisplayThread = Thread(target=display, daemon=True)
+##RecieveAudioThread.start()
 DisplayThread.start()
-SendAudioThread.start()
-SendAudioThread.join()
+##SendAudioThread.start()
+##SendAudioThread.join()
