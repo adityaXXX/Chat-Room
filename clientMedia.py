@@ -10,7 +10,7 @@ import zlib
 import struct
 
 # HOST = input("Enter Server IP\n")
-HOST = '192.168.157.206'
+HOST = '192.168.43.215'
 PORT_AUDIO = 10000
 PORT1 = 4000
 PORT2 = 5000
@@ -28,12 +28,12 @@ RATE=44100
 ports = {'10000':True,'8000':True,'4000':False,'5000':False,'6000':False,'7000':False}
 USERS = {}
 imageStream = np.array([])
-Quit=False
+quit1=False
 
 def SendAudio():
-    global Quit
+    global quit1
     while True:
-        if Quit == False:
+        if quit1 == False:
             data = stream.read(CHUNK)
             dataChunk = array('h', data)
             vol = max(dataChunk)
@@ -47,9 +47,9 @@ def SendAudio():
             break
 
 def RecieveAudio():
-    global Quit
-    while Quit != False:
-        if Quit == False:
+    global quit1
+    while True:
+        if quit1 == False:
             data = recvallAudio(BufferSize)
             stream.write(data)
         else:
@@ -67,63 +67,66 @@ def recvallAudio(size):
 
 def SendFrame():
     IP = get_ip_address()
-    global Quit
+    global quit1
     while True:
-        frame = wvs.read()
-        cv2_im = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-        frame = cv2.resize(frame, (640, 480))
-        frame = np.array(frame, dtype = np.uint8).reshape(1, lnF)
-        jpg_as_text = bytearray(frame)
-        jpg_as_text = zlib.compress(jpg_as_text, 9)
-        lengthIP = struct.pack('!I', len(IP))
-        if Quit == False:
-            databytes = b"ACTIVE" + lengthIP + IP.encode() +  jpg_as_text
-        else:
-            databytes = b"INTIVE" + lengthIP + IP.encode() + jpg_as_text
-            print('Connection Terminated Mofo !!!')
 
-        length = struct.pack('!I', len(databytes))
-        bytesToBeSend = b''
-        clientVideoSocket1.sendall(length)
-        while len(databytes) > 0:
-            if (5000 * CHUNK) <= len(databytes):
-                bytesToBeSend = databytes[:(5000 * CHUNK)]
-                databytes = databytes[(5000 * CHUNK):]
-                clientVideoSocket1.sendall(bytesToBeSend)
+            frame = wvs.read()
+            cv2_im = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+            frame = cv2.resize(frame, (640, 480))
+            frame = np.array(frame, dtype = np.uint8).reshape(1, lnF)
+            jpg_as_text = bytearray(frame)
+            jpg_as_text = zlib.compress(jpg_as_text, 9)
+
+            lenip = struct.pack('!I',len(IP))
+
+            if quit1 == False:
+                databytes = b"ACTIVE" + lenip + IP.encode() + jpg_as_text
             else:
-                bytesToBeSend = databytes
-                clientVideoSocket1.sendall(bytesToBeSend)
-                databytes = b''
-        # print("##### Data Sent!! #####")
-        if Quit == True:
-            break
+                databytes = b"INTIVE" + lenip + IP.encode() + jpg_as_text
+                print('Connection Terminated Mofo !!!')
+
+            length = struct.pack('!I', len(databytes))
+            bytesToBeSend = b''
+            clientVideoSocket1.sendall(length)
+            while len(databytes) > 0:
+                if (5000 * CHUNK) <= len(databytes):
+                    bytesToBeSend = databytes[:(5000 * CHUNK)]
+                    databytes = databytes[(5000 * CHUNK):]
+                    clientVideoSocket1.sendall(bytesToBeSend)
+                else:
+                    bytesToBeSend = databytes
+                    clientVideoSocket1.sendall(bytesToBeSend)
+                    databytes = b''
+            if quit1 == True:
+                break
 
 
 
 def RecieveFrame(clientVideoSocket):
     IP = get_ip_address()
+    global quit1
     global imageStream
-    global Quit
-    while True:
+    while quit1==False:
+
         lengthbuf = recvallVideo(clientVideoSocket, 4)
-        print("lengthbuf :- {}".format(lengthbuf))
+        print('Lengthbuf - ',lengthbuf)
         length, = struct.unpack('!I', lengthbuf)
-        print("length :- {}".format(length))
+        print('Length - ',length)
+        print (length)
         databytes = recvallVideo(clientVideoSocket, length)
+        print('Status - ',databytes[:6])
         databytes1 = databytes
         STATUS = databytes[:6].decode()
-        print("STATUS :- {}".format(STATUS))
         if STATUS == "ACTIVE" or STATUS == "INTIVE":
-            lengthIP = databytes[6:10]
-            lengthIP, = struct.unpack('!I', lengthIP)
-            ipUser = databytes[10:10+int(lengthIP)].decode()
-            databytes = databytes[(len(STATUS)+ 4 + len(ipUser)):]
+            lenip, = struct.unpack('!I',databytes[6:10])
+            ipUser = databytes[10:10+int(lenip)]
+            databytes = databytes[(len(STATUS)+4+len(ipUser)):]
             img = zlib.decompress(databytes)
             # img = img[len(IP)+6:]
 
             if len(databytes1) == length:
-                # print("Recieving Media..")
-                # print("Image Frame Size:- {}".format(len(img)))
+#                 print("Recieving Media..")
+#                 print("Image Frame Size:- {}".format(len(img)))
                 img = np.array(list(img))
                 img = np.array(img, dtype = np.uint8).reshape(480, 640, 3)
                 if ipUser not in USERS:
@@ -131,84 +134,81 @@ def RecieveFrame(clientVideoSocket):
                 else:
                     if STATUS == "ACTIVE":
                         USERS[ipUser] = img
-                    else:
+                    elif STATUS == "INTIVE":
                         del USERS[ipUser]
 
-                if len(USERS) == 1:
-                    background = cv2.resize(USERS[ipUser], (1280, 720))
-                    overlay = wvs.read()
-                    overlay = cv2.resize(overlay, (200, 150))
-                    s_img = overlay
-                    finalImage = background
-                    x_offset=1080
-                    y_offset=570
-                    finalImage[y_offset:y_offset+s_img.shape[0], x_offset:x_offset+s_img.shape[1]] = s_img
 
-                elif len(USERS) == 2:
-                    frames = []
-                    for ip in USERS:
-                        frames.append(USERS[ip])
-                    l_img1 = cv2.resize(frames[0], (640, 480))
-                    l_img2 = cv2.resize(frames[1], (640, 480))
-                    overlay = wvs.read()
-                    overlay = cv2.resize(overlay, (200, 150))
-                    s_img = overlay
-                    l_img = np.hstack((l_img1, l_img2))
-                    finalImage = cv2.resize(l_img, (1280, 720))
-                    x_offset = 1080
-                    y_offset = 570
-                    finalImage[y_offset:y_offset+s_img.shape[0], x_offset:x_offset+s_img.shape[1]] = s_img
-
-                elif len(USERS) == 3:
-                    frames = []
-                    for ip in USERS:
-                        frames.append(USERS[ip])
-                    l_img1 = cv2.resize(frames[0], (640, 480))
-                    l_img2 = cv2.resize(frames[1], (640, 480))
-                    l_img3 = cv2.resize(frames[2], (640, 480))
-                    overlay = wvs.read()
-                    overlay = cv2.resize(overlay, (640, 480))
-                    s_img = overlay
-                    l_img4 = np.hstack((l_img1, l_img2))
-                    l_img5 = np.hstack((l_img3, s_img))
-                    finalImage = np.vstack((l_img4, l_img5))
-                    finalImage = cv2.resize(l_img, (1080, 720))
-                    x_offset = 880
-                    y_offset = 570
-                    finalImage[y_offset:y_offset+s_img.shape[0], x_offset:x_offset+s_img.shape[1]] = s_img
-
-                elif len(USERS) == 0:
-                    imageStream = np.array([])
-
-                imageStream = finalImage
 
             else:
                 print("Data CORRUPTED")
         else:
-            print(STATUS)
+            print('Status Error!:-    ',STATUS)
+            continue
+
 
 def display():
-    global imageStream
-    global Quit
+    global quit1
+    global USERS
     while True:
-        if imageStream.size == 0:
-            userFrame = wvs.read()
-            userFrame = cv2.resize(userFrame, (1080, 720))
-            # userFrame = cv2.flip(userFrame, 1)
-            cv2.imshow("Stream", userFrame)
-            if cv2.waitKey(1) == 27:
-                Quit = True
-                cv2.destroyAllWindows()
-                wvs.stop()
-                break
-        else:
-            # imageStream = cv2.flip(imageStream, 1)
-            cv2.imshow("Stream", imageStream)
-            if cv2.waitKey(1) == 27:
-                Quit = True
-                cv2.destroyAllWindows()
-                wvs.stop()
-                break
+        US = USERS.copy()
+        if len(US) == 1:
+
+            for user in US:
+                background = cv2.resize(US[user], (640, 480))
+                overlay = wvs.read()
+                overlay = cv2.resize(overlay, (200, 150))
+                s_img = overlay
+                finalImage = cv2.resize(background,(1280,720))
+                x_offset=1080
+                y_offset=570
+                finalImage[y_offset:y_offset+s_img.shape[0], x_offset:x_offset+s_img.shape[1]] = s_img
+
+        elif len(US) == 2:
+            frames = []
+            for ip in US:
+                frames.append(US[ip])
+            l_img1 = cv2.resize(frames[0], (640, 480))
+            l_img2 = cv2.resize(frames[1], (640, 480))
+            overlay = wvs.read()
+            overlay = cv2.resize(overlay, (200, 150))
+            s_img = overlay
+            l_img = np.hstack((l_img1, l_img2))
+            finalImage = cv2.resize(l_img, (1280, 720))
+            x_offset = 1080
+            y_offset = 570
+            finalImage[y_offset:y_offset+s_img.shape[0], x_offset:x_offset+s_img.shape[1]] = s_img
+
+        elif len(US) == 3:
+            frames = []
+            for ip in US:
+                frames.append(US[ip])
+            l_img1 = cv2.resize(frames[0], (640, 480))
+            l_img2 = cv2.resize(frames[1], (640, 480))
+            l_img3 = cv2.resize(frames[2], (640, 480))
+            overlay = wvs.read()
+            overlay = cv2.resize(overlay, (640, 480))
+            s_img = overlay
+            l_img4 = np.hstack((l_img1, l_img2))
+            l_img5 = np.hstack((l_img3, s_img))
+            finalImage = np.vstack((l_img4, l_img5))
+            finalImage = cv2.resize(l_img, (1080, 720))
+            x_offset = 880
+            y_offset = 570
+            finalImage[y_offset:y_offset+s_img.shape[0], x_offset:x_offset+s_img.shape[1]] = s_img
+
+        elif len(US) == 0:
+            finalImage = wvs.read()
+            finalImage = cv2.resize(finalImage, (1080, 720))
+
+        finalImage = cv2.flip(imageStream, 1)
+
+        cv2.imshow("Stream", finalImage)
+        if cv2.waitKey(1) == 27:
+            quit1 = True
+            cv2.destroyAllWindows()
+            wvs.stop()
+            break
+
 
 
 def recvallVideo(clientVideoSocket, size):
@@ -248,6 +248,7 @@ for portnos in sorted(ports.keys()):
         clientVideoSocket2.connect((HOST, int(portnos)))
         ports[portnos] = True
         RecieveFrameThread1 = Thread(target=RecieveFrame, args=(clientVideoSocket2, )).start()
+        print(portnos,' - Connected !')
         break
 
 for portnos in sorted(ports.keys()):
@@ -256,6 +257,7 @@ for portnos in sorted(ports.keys()):
         clientVideoSocket3.connect((HOST, int(portnos)))
         ports[portnos] = True
         RecieveFrameThread2 = Thread(target=RecieveFrame, args=(clientVideoSocket3, )).start()
+        print(portnos,' - Connected !')
         break
 
 for portnos in sorted(ports.keys()):
@@ -264,11 +266,14 @@ for portnos in sorted(ports.keys()):
         clientVideoSocket4.connect((HOST, int(portnos)))
         ports[portnos] = True
         RecieveFrameThread3 = Thread(target=RecieveFrame, args=(clientVideoSocket4, )).start()
+        print(portnos,' - Connected !')
         break
 
 
 audio=pyaudio.PyAudio()
 stream=audio.open(format=FORMAT,channels=CHANNELS, rate=RATE, input=True, output = True,frames_per_buffer=CHUNK)
+
+IP = get_ip_address()
 
 
 SendAudioThread = Thread(target=SendAudio)
@@ -276,5 +281,5 @@ RecieveAudioThread = Thread(target=RecieveAudio)
 DisplayThread = Thread(target=display)
 RecieveAudioThread.start()
 DisplayThread.start()
-# SendAudioThread.start()
-RecieveAudioThread.join()
+SendAudioThread.start()
+SendAudioThread.join()

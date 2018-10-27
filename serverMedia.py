@@ -3,7 +3,7 @@ from threading import Thread
 import struct
 
 # HOST = input("Enter Host IP\n")
-HOST = '192.168.157.206'
+HOST = '192.168.43.215'
 PORT_AUDIO = 10000
 PORT1 = 4000
 PORT2 = 5000
