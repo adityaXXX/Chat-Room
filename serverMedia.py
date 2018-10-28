@@ -2,8 +2,8 @@ from socket import socket, AF_INET, SOCK_STREAM
 from threading import Thread
 import struct
 
-# HOST = input("Enter Host IP\n")
-HOST = '172.16.84.73'
+HOST = input("Enter Host IP\n")
+# HOST = '172.16.84.73'
 PORT_AUDIO = 10000
 PORT1 = 4000
 PORT2 = 5000
