@@ -6,3 +6,5 @@ python3 serverMedia.py
 
 To connect:-
 python3 clientMedia.py
+
+Currently in development...
