@@ -1,0 +1,148 @@
+body {
+    background-color:#c691fc;
+    font-family: Comic-sans;
+    background-image: url('http://sf.co.ua/16/03/wallpaper-3d9d0.jpg');
+}
+footer {
+    position: fixed;
+    bottom: 0;
+    right: 20px;
+}
+#myForm {
+  color: #663399;
+}
+.navbar {
+  margin-bottom: 0;
+  background-color: rgba(8, 8, 8, 0.8);
+  border: none;
+}
+.navbar.navbar-default .navbar-nav > li > a, .navbar.navbar-default .navbar-header .navbar-brand {
+  font-family: "Comfortaa", sans-serif;
+  transition: color 0.5s ease-out;
+  text-transform: uppercase;
+  color: #fba;
+}
+.navbar.navbar-default .navbar-nav > li > a:hover, .navbar.navbar-default .navbar-header .navbar-brand:hover, .navbar.navbar-default .navbar-nav > li > a:focus, .navbar.navbar-default .navbar-header .navbar-brand:focus, .navbar.navbar-default .navbar-nav > li > a:active, .navbar.navbar-default .navbar-header .navbar-brand:active {
+  color: #abf;
+}
+
+.options {
+    padding: 30px;
+}
+.videofeed {
+    padding-top: 4px;
+    justify-content: center;
+    padding-bottom: 15px;
+}
+.bts-danger {
+    border-radius: 9px;
+    border: none;
+    text-align: center;
+    font-size: 15px;
+    padding: 15px;
+    width: 200px;
+    transition: all 0.5s;
+    cursor: pointer;
+    margin: 15px;
+    background-color: orangered;
+    color: aliceblue;
+}
+.bts-info {
+    border-radius: 9px;
+    border: none;
+    text-align: center;
+    font-size: 15px;
+    padding: 15px;
+    width: 200px;
+    transition: all 0.5s;
+    cursor: pointer;
+    margin: 15px;
+    background-color: rgb(2, 204, 127);
+    color: aliceblue;
+}
+
+#train {
+    color:#663399;
+    font-family: "Lobster";
+    font-size: 80px;
+    font-weight: 400;
+    padding-bottom: 30px;
+    padding-top: 40px;
+}
+#reddit {
+    color:#8a56be;
+    font-size: 68px;
+    font-weight: 1200;
+    margin-bottom: 20px;
+}
+.wrapper {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+svg {
+  width: 200px;
+  height: 200px;
+  stroke-width: 2;
+  fill: #a4e27a;
+  stroke: #0e96f7;
+  stroke-width: 1px;
+  animation: tweetloading 1s linear infinite;
+}
+@keyframes tweetloading {
+  0% {
+    stroke-dashoffset: 1200;
+    fill-opacity: 0.35;
+    stroke-width: 1px;
+  }
+  50% {
+    fill-opacity: 0.5;
+    stroke-width: 4px;
+  }
+  100% {
+    stroke-dashoffset: -1000;
+    fill-opacity: 0.35;
+    stroke-width: 1px;
+  }
+}
+
+.button {
+    border-radius: 9px;
+    background-color: #e33258;
+    border: none;
+    color: #FFFFFF;
+    text-align: center;
+    font-size: 28px;
+    padding: 28px;
+    width: 200px;
+    transition: all 0.5s;
+    cursor: pointer;
+    margin: 15px;
+  }
+
+  .button span {
+    cursor: pointer;
+    display: inline-block;
+    position: relative;
+    transition: 0.5s;
+  }
+
+  .button span:after {
+    content: '\00bb';
+    position: absolute;
+    opacity: 0;
+    top: 0;
+    right: -20px;
+    transition: 0.5s;
+  }
+
+  .button:hover span {
+    padding-right: 25px;
+  }
+
+  .button:hover span:after {
+    opacity: 1;
+    right: 0;
+  }

@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Video Calling</title>
+    <link href="https://fonts.googleapis.com/css?family=Lobster" rel="stylesheet" type="text/css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.3.7/css/bootstrap.min.css">
+    <link rel="stylesheet" href="static/css/styles.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.3.7/js/bootstrap.min.js"></script>
+</head>
+<body>
+    <nav class="navbar navbar-default">
+    <div class="container myclass">
+      <div class="navbar-header">
+        <a class="navbar-brand" href="#">Video Conferencing <i class="fa fa-diamond" aria-hidden="true"></i></a>
+      </div>
+      </nav>
+        <h2 class="text-primary text-center" id="train">Video Calling</h2>
+        </div>
+        <div id="reddit" class="text-center">
+          <i class="fa fa-video-camera"></i>
+        </div>
+        <div class="options text-center">
+          <button class="button" id="host" onclick="show()"><span>Host </span></button>
+          <button class="button" id="connect" onclick="connect()"><span>Connect </span></button>
+        </div>
+        <form class="text-center" id="myForm" style="display:none;" action="/connectfeed" method="POST">
+          <font size="5px;">Enter IP: <input type="text" name="inputval"></font>
+        </form>
+
+        <script type="text/javascript">
+            function show() {
+              alert("Tell your friends to enter this IP: {{ ip_addr }}");
+              location.href = "/hosted"
+            }
+            function connect(){
+              form_bitch = document.getElementById('myForm');
+              document.getElementById('myForm').style.display="block";
+              document.getElementById("host").style.display="none";
+              document.getElementById("connect").style.display="none";
+              form.action = "/connectfeed"
+            }
+        </script>
+        <footer>
+          <a href="https://github.com/Satyabrat35" target="_blank" style="text-decoration: none;">
+            <i class="fa fa-github-alt"></i> Made with Flask
+          </a>
+        </footer>
+      </div>
+</body>
+</html>
